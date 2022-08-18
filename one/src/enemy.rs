@@ -4,11 +4,6 @@ use crate::snake::Snake1;
 pub struct Enemy1(Entity);
 impl Movable for Enemy1 {
     fn update_position(&mut self) {
-        // let rng = Rng::with_seed(42);
-        // self.0.position.x = (self.0.position.x + (rng.f64() - 0.5) / 4.0)
-        //     .clamp(0.0, SCREEN_SIZE as f64 - self.0.size as f64);
-        // self.0.position.y = (self.0.position.y + (rng.f64() - 0.5) / 4.0)
-        //     .clamp(0.0, SCREEN_SIZE as f64 - self.0.size as f64);
         self.0.update_position();
         self.0.life -= 1;
     }

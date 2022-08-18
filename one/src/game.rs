@@ -11,7 +11,7 @@ use crate::palette::HEART;
 use crate::palette::{self, set_draw_color};
 use crate::palette::{COLOR1, PALETTES};
 use crate::snake::Snake1;
-use crate::start_screen::{self, start_screen};
+use crate::start_screen::htp_screen;
 use crate::wasm4::diskr;
 use crate::wasm4::diskw;
 use crate::wasm4::text;
@@ -30,8 +30,6 @@ const MAX_ENEMIES: usize = 120;
 const MAX_BOMBS: usize = 16;
 const INIT_LIVES: i32 = 4;
 const BOMB_FRAME_FREQ: u32 = 400;
-// Difficulty map
-// Controls enemies per second
 
 pub struct Game {
     rng: Rng,
@@ -56,6 +54,7 @@ pub struct Game {
     score_next_life: u32,
     palette_n: u8,
     show_htp: bool,
+    show_game_over: bool,
 }
 
 impl Game {
@@ -74,6 +73,7 @@ impl Game {
         self.score_next_life = 100_000;
         self.palette_n = 0;
         self.show_htp = false;
+        self.show_game_over = false;
     }
     pub fn new() -> Self {
         let rng = Rng::with_seed(555);
@@ -89,6 +89,7 @@ impl Game {
         let score_next_life = 100_000;
         let palette_n = 0;
         let show_htp = true;
+        let show_game_over = false;
         const SPACE_PIXELS: u8 = 200;
         let mut space = vec![];
         for _ in 0..SPACE_PIXELS {
@@ -105,7 +106,7 @@ impl Game {
             u32::from_le_bytes(buffer)
         };
         let mut snake = Snake1::new();
-        snake.set_life(5);
+        snake.set_life(INIT_LIVES);
 
         Self {
             frame_count: 0,
@@ -130,6 +131,7 @@ impl Game {
             score_next_life,
             palette_n,
             show_htp,
+            show_game_over,
         }
     }
 
@@ -160,8 +162,6 @@ impl Game {
 
         let just_pressed_mouse = mouse & (mouse ^ self.prev_mouse);
         if movement_enabled && mouse & MOUSE_LEFT != 0 {
-            // set_draw_color(0x12);
-            // rect(mouseX as i32 - 8, mouseY as i32 - 8, 16, 16);
             let new_d_x =
                 mouse_x as f64 - self.snake.get_position().x - self.snake.get_size() as f64 / 2.0
                     + 1.0;
@@ -182,9 +182,6 @@ impl Game {
                     y: new_d_y,
                 })
             }
-        } else {
-            // set_draw_color(0x12);
-            // rect(mouseX as i32 - 4, mouseY as i32 - 4, 8, 8);
         }
         if movement_enabled && just_pressed_mouse & MOUSE_RIGHT != 0 {
             self.snake.switch_color();
@@ -195,9 +192,12 @@ impl Game {
         }
         if just_pressed_gamepad & wasm4::BUTTON_1 != 0 || just_pressed_mouse & MOUSE_LEFT != 0 {
             // X
-            self.show_htp = false;
-            if self.snake.get_life() <= 0 {
+            if self.show_htp {
+                self.show_htp = false;
+            }
+            if self.show_game_over {
                 self.save_and_restart();
+                self.show_game_over = false;
             }
         }
 
@@ -210,15 +210,23 @@ impl Game {
         self.input(!self.death_happened());
 
         if self.show_htp {
-            start_screen();
+            htp_screen();
             return;
         }
         set_draw_color(0x12);
         text(self.score.to_string(), 1, 1);
-        text(format!("H:{}", self.high_score), 73, 1);
-        text(format!("x{}", self.multiplier), 1, SCREEN_SIZE as i32 - 8);
+        text(
+            "H:".to_string() + self.high_score.to_string().as_str(),
+            73,
+            1,
+        );
+        text(
+            "x".to_string() + self.multiplier.to_string().as_str(),
+            1,
+            SCREEN_SIZE as i32 - 8,
+        );
         // text(
-        //     format!("LVL:{}", self.difficulty + 1),
+        //     "LVL:".to_string() + (self.difficulty + 1).to_string().as_str(),
         //     60,
         //     SCREEN_SIZE as i32 - 8,
         // );
@@ -418,7 +426,8 @@ impl Game {
         }
     }
 
-    fn game_over_tick(&self) {
+    fn game_over_tick(&mut self) {
+        self.show_game_over = true;
         set_draw_color(0x14);
         text(
             "GAME OVER",

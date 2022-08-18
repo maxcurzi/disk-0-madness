@@ -1,12 +1,12 @@
-use crate::wasm4::{self, PALETTE};
+use crate::wasm4::{DRAW_COLORS, PALETTE};
 
 pub fn set_draw_color(idx: u16) {
-    unsafe { *wasm4::DRAW_COLORS = idx }
+    unsafe { *DRAW_COLORS = idx }
 }
 
 pub fn set_palette(palette: [u32; 4]) {
     unsafe {
-        *wasm4::PALETTE = palette;
+        *PALETTE = palette;
     }
 }
 
@@ -20,6 +20,7 @@ pub const PALETTES: [[u32; 4]; 9] = [
     [0x120136, 0x035AA6, 0x40BAD5, 0xFCBF1E],
     [0x100720, 0x31087B, 0xFA2FB5, 0xFFC23C],
     [0xfff6d3, 0xf9a875, 0xeb6b6f, 0x7c3f58],
+
     // https://lospec.com/palette-list/kirokaze-gameboy
     [0x332c50, 0x46878f, 0x94e344, 0xe2f3e4],
 
