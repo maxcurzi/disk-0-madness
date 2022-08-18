@@ -14,6 +14,9 @@ rustflags = [
     # Bump this value, 16-byte aligned, if the framebuffer gets corrupted.
     "-C", "link-arg=-zstack-size=14752",
 ]
-runner = 'wasm-bindgen-test-runner'
 
-# [test]
+[profile.release]
+opt-level = "z"
+lto = true
+panic = "abort"
+strip = true

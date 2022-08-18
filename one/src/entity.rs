@@ -37,6 +37,8 @@ pub struct Entity {
     pub size: f64,
     pub speed: f64,
     pub id: u32,
+    pub color: u16,
+    pub life: i32,
 }
 impl Entity {
     pub fn new() -> Self {
@@ -46,6 +48,8 @@ impl Entity {
             size: 1.0,
             speed: 0.0,
             id: 0,
+            color: 0,
+            life: 0,
         }
     }
 }
@@ -80,6 +84,7 @@ impl Movable for Entity {
 
 impl Visible for Entity {
     fn draw(&self) {
+        set_draw_color(self.color);
         wasm4::oval(
             self.position.x as i32,
             self.position.y as i32,
@@ -106,7 +111,13 @@ impl Visible for Entity {
         let dx = x1_center - x2_center;
         let dy = y1_center - y2_center;
         let distance = (dx * dx + dy * dy).sqrt();
-        distance < radius1 + radius2 - 2.0
+
+        let mut tolerance = 0.0;
+        if other.color != self.color {
+            // Makes it easy to sneak past enemies for satisfying escapes
+            tolerance = -2.0;
+        }
+        distance < radius1 + radius2 + tolerance
     }
 }
 
