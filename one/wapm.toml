@@ -1,0 +1,19 @@
+[package]
+name = "maxcurzi/disk0-MADNESS"
+version = "1.0.0"
+description = "Dodge and absorb enemies. Change color to your advantage in this addictive retro bullet hell."
+license = "ISC"
+repository = "https://github.com/maxcurzi"
+
+[[module]]
+name = "game"
+source = "game.wasm"
+abi = "wasm4"
+
+[module.interfaces]
+wasm4 = "0.0.1"
+
+[[command]]
+name = "play"
+module = "game"
+runner = "wasm4@0.0.1"
