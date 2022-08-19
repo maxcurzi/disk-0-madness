@@ -13,7 +13,6 @@ use crate::palette::{self, set_draw_color};
 use crate::palette::{COLOR1, PALETTES};
 use crate::snake::Snake1;
 use crate::start_screen::{game_over_screen, htp_screen, title_screen};
-use crate::wasm4::diskr;
 use crate::wasm4::diskw;
 use crate::wasm4::text;
 use crate::wasm4::BLIT_1BPP;
@@ -25,12 +24,14 @@ use crate::wasm4::MOUSE_Y;
 use crate::wasm4::SCREEN_SIZE;
 use crate::wasm4::{self, MOUSE_MIDDLE};
 use crate::wasm4::{blit, BUTTON_2};
+use crate::wasm4::{diskr, GAMEPAD1};
 use fastrand::Rng;
 
 const MAX_ENEMIES: usize = 120;
 const MAX_BOMBS: usize = 16;
-const INIT_LIVES: i32 = 99;
+const INIT_LIVES: i32 = 3;
 const BOMB_FRAME_FREQ: u32 = 400;
+const MUSIC_SPEED_CTRL: u32 = 5;
 
 pub struct Game {
     rng: Rng,
@@ -42,15 +43,15 @@ pub struct Game {
     enemies1: HashMap<u32, Box<Enemy1>>,
     space: Vec<(u8, u8)>,
     enemy_color: u16,
-    en_frame: Vec<u8>,
+    en_frame: [u8; 10],
     difficulty: u8,
-    en_col_frame: Vec<u8>,
+    en_col_frame: [u8; 10],
     score: u32,
     high_score: u32,
     multiplier: u32,
-    diff_mul_spike: Vec<u32>,
-    respite: i32,           // frames without enemies
-    killer: Option<Enemy1>, // store enemy that killed player
+    diff_mul_spike: [u32; 10], //Vec<u32>,
+    respite: i32,              // frames without enemies
+    killer: Option<Enemy1>,    // store enemy that killed player
     death_countdown: i32,
     score_next_life: u32,
     palette_n: u8,
@@ -82,9 +83,9 @@ impl Game {
     }
     pub fn new() -> Self {
         let rng = Rng::with_seed(555);
-        let en_frame: Vec<u8> = vec![120, 60, 30, 25, 10, 8, 6, 4, 2, 1];
-        let en_col_frame: Vec<u8> = vec![240, 180, 160, 120, 100, 80, 60, 60, 60, 60];
-        let diff_mul_spike = vec![4, 20, 50, 100, 300, 600, 1000, 1500, 2000, 3000];
+        let en_frame: [u8; 10] = [120, 60, 30, 25, 10, 8, 6, 4, 2, 1];
+        let en_col_frame: [u8; 10] = [240, 180, 160, 120, 100, 80, 60, 60, 60, 60];
+        let diff_mul_spike: [u32; 10] = [4, 20, 50, 100, 200, 400, 600, 900, 1200, 1500];
         let difficulty = 0;
         let score: u32 = 0;
         let respite = 0;
@@ -145,7 +146,7 @@ impl Game {
     }
 
     pub fn input(&mut self, movement_enabled: bool) {
-        let gamepad = unsafe { *wasm4::GAMEPAD1 };
+        let gamepad = unsafe { *GAMEPAD1 };
         let just_pressed_gamepad = gamepad & (gamepad ^ self.prev_gamepad);
         self.snake.stop();
         if movement_enabled && gamepad & wasm4::BUTTON_LEFT != 0 {
@@ -220,7 +221,7 @@ impl Game {
 
     pub fn update(&mut self) {
         self.frame_count += 1;
-        music_player((self.frame_count / 5) as usize, self.song_nr);
+        music_player((self.frame_count / MUSIC_SPEED_CTRL) as usize, self.song_nr);
 
         self.draw_space();
         self.input(!self.death_happened());
@@ -411,6 +412,16 @@ impl Game {
         if self.score > self.score_next_life {
             self.snake.set_life(self.snake.get_life() + 1);
             self.score_next_life *= 2;
+        }
+
+        // Update music appropriately
+        match self.difficulty {
+            0..=1 => self.song_nr = 1,
+            2 => self.song_nr = 2,
+            3 => self.song_nr = 3,
+            4 => self.song_nr = 4,
+            5 => self.song_nr = 5,
+            _ => self.song_nr = 6,
         }
     }
 

@@ -1,3 +1,4 @@
+#![allow(unused)]
 use crate::{
     notes::*,
     wasm4::{
@@ -9,880 +10,373 @@ use crate::{
 pub fn music_player(ext_counter: usize, song_n: u8) {
     song_player(&ext_counter, song_n);
 }
-#[derive(Copy, Clone)]
-struct Note {
-    note: Option<u32>,
-    duration: u32,
-}
 
 const VOICE_NOTES: usize = 64;
 
-fn voice_player(counter: &usize, voice: Voice, volume: Volume, flags: Flags) {
+fn voice_player(counter: &usize, voice: Voice, duration: Duration, volume: Volume, flags: Flags) {
     let idx = counter % VOICE_NOTES;
-    let note = &voice[idx];
-    if let Some(n) = note.note {
-        tone(n, note.duration, volume, flags);
+    let note = voice[idx];
+    if note != XX {
+        tone(note as u32, duration, volume, flags);
     }
 }
 
 pub fn song_player(counter: &usize, song_n: u8) {
     let song = SONGS[song_n as usize];
     for voice in song.iter().flatten() {
-        voice_player(counter, voice.0, voice.1, voice.2);
+        voice_player(counter, voice.0, voice.1, voice.2, voice.3);
     }
 }
+
+// Music is as follows:
+// - A Song contains up to 4 tracks (PULSE1, PULSE2, TRIANGLE, NOISE).
+//
+// - Tracks: Each track is a combination of a Voice (sequence of notes) and
+// their corresponding volume/duration/flags.
+// Duration, Volume, and flags are applied uniformly within each voice
+// (this doesn't allow much variety, but I can make it work).
+//
+// - Voice: Each Voice has EXACTLY 64 notes (16 bars). Wastes space if
+// the track is mostly empty, but keeping index:note can be just as wasteful.
+//
+
+type Note = u16;
+type Voice = [Note; VOICE_NOTES];
+type Volume = u32;
+type Duration = u32;
+type Flags = u32;
+type Track = Option<(Voice, Duration, Volume, Flags)>;
+type Song = [Track; 4];
+
+const SONG0: Song = [
+    Some((GAME_THEME, 10, 40, TONE_PULSE1 | TONE_MODE4)),
+    Some((BEATS0_1, 3, 50, TONE_TRIANGLE | TONE_PAN_LEFT)),
+    Some((BEATS0_2, 2, 80, TONE_PULSE2 | TONE_PAN_RIGHT)),
+    None,
+];
+const SONG1_0: Song = [
+    None,
+    None,
+    Some((T_2_0, 10, 60 | (10 << 8), TONE_TRIANGLE | TONE_MODE1)),
+    None,
+];
+const SONG1_1: Song = [
+    Some((T_0_0, 8, 20 | (10 << 8), TONE_PULSE1 | TONE_MODE1)),
+    None,
+    Some((T_2_0, 10, 60 | (10 << 8), TONE_TRIANGLE | TONE_MODE1)),
+    None,
+];
+const SONG1_2: Song = [
+    Some((T_0_1, 8, 20 | (10 << 8), TONE_PULSE1 | TONE_MODE1)),
+    None,
+    Some((T_2_0, 10, 60 | (10 << 8), TONE_TRIANGLE | TONE_MODE1)),
+    None,
+];
+const SONG1_3: Song = [
+    Some((T_0_1, 8, 40 | (10 << 8), TONE_PULSE1 | TONE_MODE1)),
+    None,
+    Some((T_2_0, 10, 60 | (10 << 8), TONE_TRIANGLE | TONE_MODE1)),
+    Some((T_3_0, 1 | (16 << 8), 40, TONE_NOISE | TONE_MODE3)),
+];
+const SONG1_4: Song = [
+    Some((T_0_1, 8, 60 | (10 << 8), TONE_PULSE1 | TONE_MODE1)),
+    Some((T_1_0, 10, 80, TONE_PULSE2 | TONE_MODE1)),
+    Some((T_2_0, 10, 60 | (10 << 8), TONE_TRIANGLE | TONE_MODE1)),
+    Some((T_3_0, 1 | (16 << 8), 40, TONE_NOISE | TONE_MODE3)),
+];
+const SONGS: [Song; 6] = [SONG0, SONG1_0, SONG1_1, SONG1_2, SONG1_3, SONG1_4];
 
 #[rustfmt::skip]
 const GAME_THEME: Voice = [
 
 // Bar 1
-Note{note:Some(G4), duration:10},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+G4, XX, XX, XX,
 // Bar 2
-Note{note:Some(D5), duration:10},
-Note{note:None, duration:0},
-Note{note:Some(E5), duration:10},
-Note{note:None, duration:0},
-
+D5, XX, E5, XX,
 // Bar 3
-Note{note:Some(D5), duration:10},
-Note{note:None, duration:0},
-Note{note:Some(E5), duration:10},
-Note{note:None, duration:0},
-
+D5, XX, E5, XX,
 // Bar 4
-Note{note:Some(D5), duration:10},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+D5, XX, XX, XX,
 // Bar 5
-Note{note:Some(G4), duration:10},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+G4, XX, XX, XX,
 // Bar 6
-Note{note:Some(D5), duration:10},
-Note{note:None, duration:0},
-Note{note:Some(E5), duration:10},
-Note{note:None, duration:0},
-
+D5, XX, E5, XX,
 // Bar 7
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+XX, XX, XX, XX,
 // Bar 8
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+XX, XX, XX, XX,
 // Bar 9
-Note{note:Some(G4), duration:10},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+G4, XX, XX, XX,
 // Bar 10
-Note{note:Some(D5), duration:10},
-Note{note:None, duration:0},
-Note{note:Some(E5), duration:10},
-Note{note:None, duration:0},
-
+D5, XX, E5, XX,
 // Bar 11
-Note{note:Some(D5), duration:10},
-Note{note:None, duration:0},
-Note{note:Some(E5), duration:10},
-Note{note:None, duration:0},
-
+D5, XX, E5, XX,
 // Bar 12
-Note{note:Some(D5), duration:10},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
-
+D5, XX, XX, XX,
 // Bar 13
-Note{note:Some(D3), duration:10},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+D3, XX, XX, XX,
 // Bar 14
-Note{note:Some(G4), duration:10},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+G4, XX, XX, XX,
 // Bar 15
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+XX, XX, XX, XX,
 // Bar 16
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+XX, XX, XX, XX,
 ];
 
 #[rustfmt::skip]
 const BEATS0_1: Voice = [
 
 // Bar 1
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-
+G3, XX, G3, XX,
 // Bar 2
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-
+G3, XX, G3, XX,
 // Bar 3
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-
+G3, XX, G3, XX,
 // Bar 4
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-
+G3, XX, G3, XX,
 // Bar 5
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-
+G3, XX, G3, XX,
 // Bar 6
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-
+G3, XX, G3, XX,
 // Bar 7
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-
+G3, XX, G3, XX,
 // Bar 8
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-
+G3, XX, G3, XX,
 // Bar 9
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-
+G3, XX, G3, XX,
 // Bar 10
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-
+G3, XX, G3, XX,
 // Bar 11
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-
+G3, XX, G3, XX,
 // Bar 12
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-
-
+G3, XX, G3, XX,
 // Bar 13
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-
+G3, XX, G3, XX,
 // Bar 14
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-
+G3, XX, G3, XX,
 // Bar 15
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-
+G3, XX, G3, XX,
 // Bar 16
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-Note{note:Some(G3), duration:3},
-Note{note:None, duration:0},
-
+G3, XX, G3, XX,
 ];
 
 #[rustfmt::skip]
 const BEATS0_2: Voice = [
-
 // Bar 1
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:Some(G1), duration:2},
-Note{note:None, duration:0},
-
+XX, XX, G1, XX,
 // Bar 2
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:Some(G1), duration:2},
-Note{note:None, duration:0},
-
+XX, XX, G1, XX,
 // Bar 3
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:Some(G1), duration:2},
-Note{note:None, duration:0},
-
+XX, XX, G1, XX,
 // Bar 4
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:Some(G1), duration:2},
-Note{note:None, duration:0},
-
+XX, XX, G1, XX,
 // Bar 5
-Note{note:Some(G1), duration:2},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+G1, XX, XX, XX,
 // Bar 6
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:Some(G1), duration:2},
-Note{note:None, duration:0},
-
+XX, XX, G1, XX,
 // Bar 7
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:Some(G1), duration:2},
-Note{note:None, duration:0},
-
+XX, XX, G1, XX,
 // Bar 8
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+XX, XX, XX, XX,
 // Bar 9
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:Some(G1), duration:2},
-Note{note:None, duration:0},
-
+XX, XX, G1, XX,
 // Bar 10
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:Some(G1), duration:2},
-Note{note:None, duration:0},
-
+XX, XX, G1, XX,
 // Bar 11
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:Some(G1), duration:2},
-Note{note:None, duration:0},
-
+XX, XX, G1, XX,
 // Bar 12
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:Some(G1), duration:2},
-Note{note:None, duration:0},
-
+XX, XX, G1, XX,
 // Bar 13
-Note{note:Some(G1), duration:2},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+G1, XX, XX, XX,
 // Bar 14
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:Some(G1), duration:2},
-Note{note:None, duration:0},
-
+XX, XX, G1, XX,
 // Bar 15
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:Some(G1), duration:2},
-Note{note:None, duration:0},
-
+XX, XX, G1, XX,
 // Bar 16
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+XX, XX, XX, XX,
 ];
 
 #[rustfmt::skip]
 const T_0_0: Voice = [
 
 // Bar 1
-Note{note:Some(D3), duration:10},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+D3, XX, XX, XX,
 // Bar 2
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:Some(D3), duration:8},
-Note{note:None, duration:0},
-
+XX, XX, D3, XX,
 // Bar 3
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:Some(D3), duration:8},
-Note{note:None, duration:0},
-
+XX, XX, D3, XX,
 // Bar 4
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+XX, XX, XX, XX,
 // Bar 5
-Note{note:Some(D3), duration:10},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+D3, XX, XX, XX,
 // Bar 6
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:Some(D3), duration:8},
-Note{note:None, duration:0},
-
+XX, XX, D3, XX,
 // Bar 7
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:Some(D3), duration:8},
-Note{note:None, duration:0},
-
+XX, XX, D3, XX,
 // Bar 8
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+XX, XX, XX, XX,
 // Bar 9
-Note{note:Some(D3), duration:10},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+D3, XX, XX, XX,
 // Bar 10
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:Some(D3), duration:8},
-Note{note:None, duration:0},
-
+XX, XX, D3, XX,
 // Bar 11
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:Some(D3), duration:8},
-Note{note:None, duration:0},
-
+XX, XX, D3, XX,
 // Bar 12
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+XX, XX, XX, XX,
 // Bar 13
-Note{note:Some(D3), duration:10},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+D3, XX, XX, XX,
 // Bar 14
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:Some(D3), duration:8},
-Note{note:None, duration:0},
-
+XX, XX, D3, XX,
 // Bar 15
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:Some(D3), duration:8},
-Note{note:None, duration:0},
-
+XX, XX, D3, XX,
 // Bar 16
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+XX, XX, XX, XX,
 ];
 
 #[rustfmt::skip]
 const T_0_1: Voice = [
 
 // Bar 1
-Note{note:Some(D3), duration:10},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+D3, XX, XX, XX,
 // Bar 2
-Note{note:Some(E3), duration:8},
-Note{note:None, duration:0},
-Note{note:Some(D3), duration:8},
-Note{note:None, duration:0},
-
+E3, XX, D3, XX,
 // Bar 3
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:Some(D3), duration:8},
-Note{note:None, duration:0},
-
+XX, XX, D3, XX,
 // Bar 4
-Note{note:Some(E3), duration:8},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+E3, XX, XX, XX,
 // Bar 5
-Note{note:Some(D3), duration:10},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+D3, XX, XX, XX,
 // Bar 6
-Note{note:Some(E3), duration:8},
-Note{note:None, duration:0},
-Note{note:Some(D3), duration:8},
-Note{note:None, duration:0},
-
+E3, XX, D3, XX,
 // Bar 7
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:Some(D3), duration:8},
-Note{note:None, duration:0},
-
+XX, XX, D3, XX,
 // Bar 8
-Note{note:Some(E3), duration:8},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+E3, XX, XX, XX,
 // Bar 9
-Note{note:Some(D3), duration:10},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+D3, XX, XX, XX,
 // Bar 10
-Note{note:Some(E3), duration:8},
-Note{note:None, duration:0},
-Note{note:Some(D3), duration:8},
-Note{note:None, duration:0},
-
+E3, XX, D3, XX,
 // Bar 11
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:Some(D3), duration:8},
-Note{note:None, duration:0},
-
+XX, XX, D3, XX,
 // Bar 12
-Note{note:Some(E3), duration:8},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+E3, XX, XX, XX,
 // Bar 13
-Note{note:Some(D3), duration:10},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+D3, XX, XX, XX,
 // Bar 14
-Note{note:Some(E3), duration:8},
-Note{note:None, duration:0},
-Note{note:Some(D3), duration:8},
-Note{note:None, duration:0},
-
+E3, XX, D3, XX,
 // Bar 15
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:Some(D3), duration:8},
-Note{note:None, duration:0},
-
+XX, XX, D3, XX,
 // Bar 16
-Note{note:Some(E3), duration:8},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+E3, XX, XX, XX,
 ];
 
 #[rustfmt::skip]
 const T_2_0: Voice = [
 
 // Bar 1
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+XX, XX, XX, XX,
 // Bar 2
-Note{note:Some(G2), duration:10},
-Note{note:None, duration:0},
-Note{note:Some(A3), duration:10},
-Note{note:None, duration:0},
-
+G2, XX, A3, XX,
 // Bar 2
-Note{note:Some(G2), duration:10},
-Note{note:None, duration:0},
-Note{note:Some(A3), duration:10},
-Note{note:None, duration:0},
-
+G2, XX, A3, XX,
 // Bar 2
-Note{note:Some(G2), duration:10},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+G2, XX, XX, XX,
 // Bar 3
-Note{note:Some(G2), duration:10},
-Note{note:None, duration:0},
-Note{note:Some(A3), duration:10},
-Note{note:None, duration:0},
-
+G2, XX, A3, XX,
 // Bar 6
-Note{note:Some(G2), duration:10},
-Note{note:None, duration:0},
-Note{note:Some(A3), duration:10},
-Note{note:None, duration:0},
-
+G2, XX, A3, XX,
 // Bar 7
-Note{note:Some(G2), duration:10},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+G2, XX, XX, XX,
 // Bar 8
-Note{note:Some(G2), duration:10},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+G2, XX, XX, XX,
 // Bar 9
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+XX, XX, XX, XX,
 // Bar 10
-Note{note:Some(G2), duration:10},
-Note{note:None, duration:0},
-Note{note:Some(A3), duration:10},
-Note{note:None, duration:0},
-
+G2, XX, A3, XX,
 // Bar 11
-Note{note:Some(G2), duration:10},
-Note{note:None, duration:0},
-Note{note:Some(A3), duration:10},
-Note{note:None, duration:0},
-
+G2, XX, A3, XX,
 // Bar 12
-Note{note:Some(G2), duration:10},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+G2, XX, XX, XX,
 // Bar 12
-Note{note:Some(G2), duration:10},
-Note{note:None, duration:0},
-Note{note:Some(A3), duration:10},
-Note{note:None, duration:0},
-
+G2, XX, A3, XX,
 // Bar 12
-Note{note:Some(G2), duration:10},
-Note{note:None, duration:0},
-Note{note:Some(A3), duration:10},
-Note{note:None, duration:0},
-
+G2, XX, A3, XX,
 // Bar 13
-Note{note:Some(G2), duration:10},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+G2, XX, XX, XX,
 // Bar 16
-Note{note:Some(G2), duration:10},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+G2, XX, XX, XX,
 ];
 
 #[rustfmt::skip]
 const T_1_0: Voice = [
 
 // Bar 1
-Note{note:Some(G3), duration:10},
-Note{note:None, duration:0},
-Note{note:Some(D4), duration:10},
-Note{note:None, duration:0},
-
+G3, XX, D4, XX,
 // Bar 2
-Note{note:Some(A4), duration:10},
-Note{note:None, duration:0},
-Note{note:Some(E4), duration:10},
-Note{note:None, duration:0},
-
+A4, XX, E4, XX,
 // Bar 3
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:Some(E3), duration:10},
-Note{note:None, duration:0},
-
+XX, XX, E3, XX,
 // Bar 3
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+XX, XX, XX, XX,
 // Bar 4
-Note{note:Some(D3), duration:10},
-Note{note:None, duration:0},
-Note{note:Some(D3), duration:10},
-Note{note:None, duration:0},
-
+D3, XX, D3, XX,
 // Bar 6
-Note{note:Some(E3), duration:10},
-Note{note:None, duration:0},
-Note{note:Some(D3), duration:10},
-Note{note:None, duration:0},
-
+E3, XX, D3, XX,
 // Bar 7
-Note{note:Some(E3), duration:10},
-Note{note:None, duration:0},
-Note{note:Some(E3), duration:10},
-Note{note:None, duration:0},
-
+E3, XX, E3, XX,
 // Bar 8
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+XX, XX, XX, XX,
 // Bar 9
-Note{note:Some(G3), duration:10},
-Note{note:None, duration:0},
-Note{note:Some(D4), duration:10},
-Note{note:None, duration:0},
-
+G3, XX, D4, XX,
 // Bar 10
-Note{note:Some(A4), duration:10},
-Note{note:None, duration:0},
-Note{note:Some(E4), duration:10},
-Note{note:None, duration:0},
-
+A4, XX, E4, XX,
 // Bar 11
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:Some(E3), duration:10},
-Note{note:None, duration:0},
-
+XX, XX, E3, XX,
 // Bar 12
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+XX, XX, XX, XX,
 // Bar 13
-Note{note:Some(D3), duration:10},
-Note{note:None, duration:0},
-Note{note:Some(D3), duration:10},
-Note{note:None, duration:0},
-
+D3, XX, D3, XX,
 // Bar 13
-Note{note:Some(E3), duration:10},
-Note{note:None, duration:0},
-Note{note:Some(D3), duration:10},
-Note{note:None, duration:0},
-
+E3, XX, D3, XX,
 // Bar 14
-Note{note:Some(E3), duration:10},
-Note{note:None, duration:0},
-Note{note:Some(E3), duration:10},
-Note{note:None, duration:0},
-
+E3, XX, E3, XX,
 // Bar 16
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
+XX, XX, XX, XX,
 ];
 
 #[rustfmt::skip]
 const T_3_0: Voice = [
 
 // Bar 1
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+XX, XX, XX, XX,
 // Bar 2
-Note{note:Some(A4), duration:1 | (16 << 8)},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+A4, XX, XX, XX,
 // Bar 3
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+XX, XX, XX, XX,
 // Bar 4
-Note{note:Some(A4), duration:1 | (16 << 8)},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+A4, XX, XX, XX,
 // Bar 5
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+XX, XX, XX, XX,
 // Bar 6
-Note{note:Some(A4), duration:1 | (16 << 8)},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+A4, XX, XX, XX,
 // Bar 7
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+XX, XX, XX, XX,
 // Bar 8
-Note{note:Some(A4), duration:1 | (16 << 8)},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+A4, XX, XX, XX,
 // Bar 9
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+XX, XX, XX, XX,
 // Bar 10
-Note{note:Some(A4), duration:1 | (16 << 8)},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+A4, XX, XX, XX,
 // Bar 11
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+XX, XX, XX, XX,
 // Bar 12
-Note{note:Some(A4), duration:1 | (16 << 8)},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+A4, XX, XX, XX,
 // Bar 13
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+XX, XX, XX, XX,
 // Bar 14
-Note{note:Some(A4), duration:1 | (16 << 8)},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+A4, XX, XX, XX,
 // Bar 15
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+XX, XX, XX, XX,
 // Bar 16
-Note{note:Some(A4), duration:1 | (16 << 8)},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-Note{note:None, duration:0},
-
+A4, XX, XX, XX,
 ];
-type Voice = [Note; VOICE_NOTES];
-type Volume = u32;
-type Flags = u32;
-type Track = Option<(Voice, Volume, Flags)>;
-type Song = [Track; 4];
-
-const SONG0: Song = [
-    Some((GAME_THEME, 40, TONE_PULSE1 | TONE_MODE4)),
-    Some((BEATS0_1, 50, TONE_TRIANGLE | TONE_PAN_LEFT)),
-    Some((BEATS0_2, 80, TONE_PULSE2 | TONE_PAN_RIGHT)),
-    None,
-    // None,
-];
-
-const SONG1_0: Song = [
-    None,
-    None,
-    Some((T_2_0, 60 | (10 << 8), TONE_TRIANGLE | TONE_MODE1)),
-    None,
-];
-const SONG1_1: Song = [
-    Some((T_0_0, 20 | (10 << 8), TONE_PULSE1 | TONE_MODE1)),
-    None,
-    Some((T_2_0, 60 | (10 << 8), TONE_TRIANGLE | TONE_MODE1)),
-    None,
-];
-const SONG1_2: Song = [
-    Some((T_0_1, 20 | (10 << 8), TONE_PULSE1 | TONE_MODE1)),
-    None,
-    Some((T_2_0, 60 | (10 << 8), TONE_TRIANGLE | TONE_MODE1)),
-    None,
-];
-const SONG1_3: Song = [
-    Some((T_0_1, 20 | (10 << 8), TONE_PULSE1 | TONE_MODE1)),
-    Some((T_1_0, 60 | (10 << 8), TONE_TRIANGLE | TONE_MODE1)),
-    Some((T_2_0, 60 | (10 << 8), TONE_TRIANGLE | TONE_MODE1)),
-    None,
-];
-const SONG1_4: Song = [
-    Some((T_0_1, 60 | (10 << 8), TONE_PULSE1 | TONE_MODE1)),
-    Some((T_1_0, 80, TONE_PULSE2 | TONE_MODE1)),
-    Some((T_2_0, 60 | (10 << 8), TONE_TRIANGLE | TONE_MODE1)),
-    Some((T_3_0, 40, TONE_NOISE | TONE_MODE3)),
-];
-const SONGS: [Song; 2] = [SONG0, SONG1_0]; //, SONG1_1]; //, SONG1_2]; //, SONG1_3]; // SONG1_4];
-                                           // const SONGS: [Song; 1] = [SONG0]; //, SONG1_0, SONG1_1, SONG1_2, SONG1_3, SONG1_4];
