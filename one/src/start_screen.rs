@@ -28,6 +28,7 @@ pub fn title_screen(tick: usize) {
         TITLE1_HEIGHT,
         TITLE1_FLAGS,
     );
+    set_draw_color(0x02);
 }
 
 pub fn htp_screen(tick: usize) {
@@ -57,6 +58,8 @@ pub fn htp_screen(tick: usize) {
     enemy.draw();
 
     set_draw_color(0x12);
+    text("Move: KBD/Mouse", hoff, voff + 55);
+    set_draw_color(0x12);
     text("Push X: -> ->", hoff, voff + 65);
     snake1.set_position(Coord {
         x: hoff as f64 + 55.0,
@@ -77,7 +80,7 @@ pub fn htp_screen(tick: usize) {
     snake1.draw();
     set_draw_color(0x12);
     text("Bombs  change", hoff, voff + 85);
-    text("enemy color", hoff, voff + 95);
+    text("the enemy color", hoff, voff + 95);
     text("to your color!", hoff, voff + 105);
     let bomb = Bomb::new(&Coord {
         x: hoff as f64 + 43.0,

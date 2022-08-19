@@ -1,6 +1,6 @@
 use crate::entity::{Coord, Entity, Movable, Visible};
-use crate::palette::{COLOR1, COLOR2};
-use crate::wasm4::SCREEN_SIZE;
+use crate::palette::{COLOR1, COLOR2, HEART};
+use crate::wasm4::{blit, BLIT_1BPP, SCREEN_SIZE};
 
 #[derive(Debug, Copy, Clone)]
 pub struct Snake1(Entity);
