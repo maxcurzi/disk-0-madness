@@ -1,3 +1,5 @@
+use std::f64::EPSILON;
+
 use crate::entity::{Coord, Entity, Movable, Visible};
 use crate::snake::Snake1;
 
@@ -18,7 +20,9 @@ impl Enemy1 {
         let ddx = self.0.direction.x - new_dir_x;
         let ddy = self.0.direction.y - new_dir_y;
         let norm = (ddx * ddx + ddy * ddy).sqrt();
-
+        if norm <= 2.0 * EPSILON {
+            return;
+        }
         let ddx_norm = (self.0.direction.x - new_dir_x / norm).clamp(-0.09, 0.09);
         let ddy_norm = (self.0.direction.y - new_dir_y / norm).clamp(-0.09, 0.09);
         self.0.direction.x -= ddx_norm;

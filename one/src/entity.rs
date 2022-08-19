@@ -1,5 +1,5 @@
 use crate::palette::set_draw_color;
-use crate::wasm4::{self, SCREEN_SIZE};
+use crate::wasm4::{oval, SCREEN_SIZE};
 use std::f64::EPSILON;
 use std::ops::{Add, Sub};
 
@@ -85,13 +85,12 @@ impl Movable for Entity {
 impl Visible for Entity {
     fn draw(&self) {
         set_draw_color(self.color);
-        wasm4::oval(
+        oval(
             self.position.x as i32,
             self.position.y as i32,
             self.size as u32,
             self.size as u32,
         );
-        // wasm4::oval(10, 10, 10, 10);
     }
 
     fn collided_with(&self, other: &Entity) -> bool {
@@ -120,39 +119,3 @@ impl Visible for Entity {
         distance < radius1 + radius2 + tolerance
     }
 }
-
-// #[cfg(test)]
-// pub mod tests {
-
-//     use super::*;
-// #[test]
-// pub mod tests {
-//     use super::*;
-//     use wasm_bindgen_test::*;
-//     #[wasm_bindgen_test]
-//     fn test_update_position() {
-//         let mut ent = Entity::new();
-//         println!("{:?}", ent);
-//         ent.direction = Coord { x: 1.0, y: 2.0 };
-//         ent.update_position();
-//         let expected_pos = Coord {
-//             x: 1.0 / (1.0f64.powi(2) + 2.0f64.powi(2)).sqrt(),
-//             y: 2.0 / (1.0f64.powi(2) + 2.0f64.powi(2)).sqrt(),
-//         };
-//         dbg!(expected_pos);
-//         assert!(
-//             ent.position - expected_pos
-//                 <= Coord {
-//                     x: EPSILON,
-//                     y: EPSILON,
-//                 }
-//         );
-//     }
-
-//     // #[test]
-//     #[wasm_bindgen_test]
-//     fn test_pass() {
-//         assert!(true);
-//     }
-// }
-// }

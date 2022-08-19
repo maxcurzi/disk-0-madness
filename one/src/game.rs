@@ -1,3 +1,4 @@
+use std::char::MAX;
 use std::cmp::max;
 use std::collections::HashMap;
 
@@ -6,15 +7,15 @@ use crate::draws::pixel;
 use crate::enemy::Enemy1;
 use crate::entity::Coord;
 use crate::entity::{Movable, Visible};
-use crate::music::music_player;
+use crate::music::{
+    bomb_sound, color1_sound, color2_sound, death_sound, extra_life_sound, music_player,
+};
 use crate::palette::COLOR2;
 use crate::palette::HEART;
 use crate::palette::{self, set_draw_color};
 use crate::palette::{COLOR1, PALETTES};
 use crate::snake::Snake1;
 use crate::start_screen::{game_over_screen, htp_screen, title_screen};
-use crate::wasm4::diskw;
-use crate::wasm4::text;
 use crate::wasm4::BLIT_1BPP;
 use crate::wasm4::MOUSE_BUTTONS;
 use crate::wasm4::MOUSE_LEFT;
@@ -25,13 +26,17 @@ use crate::wasm4::SCREEN_SIZE;
 use crate::wasm4::{self, MOUSE_MIDDLE};
 use crate::wasm4::{blit, BUTTON_2};
 use crate::wasm4::{diskr, GAMEPAD1};
+use crate::wasm4::{diskw, tone, TONE_MODE3, TONE_PULSE1};
+use crate::wasm4::{text, trace};
 use fastrand::Rng;
 
-const MAX_ENEMIES: usize = 120;
+const MAX_ENEMIES: usize = 200;
 const MAX_BOMBS: usize = 16;
 const INIT_LIVES: i32 = 3;
+const INIT_DIFFICULTY: u8 = 0;
 const BOMB_FRAME_FREQ: u32 = 400;
 const MUSIC_SPEED_CTRL: u32 = 5;
+const DIFFICULTY_LEVELS: usize = 10;
 
 pub struct Game {
     rng: Rng,
@@ -43,15 +48,15 @@ pub struct Game {
     enemies1: HashMap<u32, Box<Enemy1>>,
     space: Vec<(u8, u8)>,
     enemy_color: u16,
-    en_frame: [u8; 10],
+    en_frame: [u8; DIFFICULTY_LEVELS],
     difficulty: u8,
-    en_col_frame: [u8; 10],
+    en_col_frame: [u8; DIFFICULTY_LEVELS],
     score: u32,
     high_score: u32,
     multiplier: u32,
-    diff_mul_spike: [u32; 10], //Vec<u32>,
-    respite: i32,              // frames without enemies
-    killer: Option<Enemy1>,    // store enemy that killed player
+    diff_mul_spike: [u32; DIFFICULTY_LEVELS], //Vec<u32>,
+    respite: i32,                             // frames without enemies
+    killer: Option<Enemy1>,                   // store enemy that killed player
     death_countdown: i32,
     score_next_life: u32,
     palette_n: u8,
@@ -63,14 +68,14 @@ pub struct Game {
 
 impl Game {
     pub fn initialize_game(&mut self) {
-        self.difficulty = 0;
+        self.difficulty = INIT_DIFFICULTY;
         self.score = 0;
         self.multiplier = 1;
         let mut snake = Snake1::new();
         snake.set_life(INIT_LIVES);
         self.snake = snake;
-        self.enemies1.drain();
-        self.bombs.drain();
+        self.enemies1.clear();
+        self.bombs.clear();
         self.respite = 0;
         self.killer = None;
         self.death_countdown = 6;
@@ -83,10 +88,10 @@ impl Game {
     }
     pub fn new() -> Self {
         let rng = Rng::with_seed(555);
-        let en_frame: [u8; 10] = [120, 60, 30, 25, 10, 8, 6, 4, 2, 1];
+        let en_frame: [u8; 10] = [120, 60, 30, 25, 15, 10, 8, 6, 4, 2];
         let en_col_frame: [u8; 10] = [240, 180, 160, 120, 100, 80, 60, 60, 60, 60];
         let diff_mul_spike: [u32; 10] = [4, 20, 50, 100, 200, 400, 600, 900, 1200, 1500];
-        let difficulty = 0;
+        let difficulty = INIT_DIFFICULTY;
         let score: u32 = 0;
         let respite = 0;
         let multiplier = 1;
@@ -100,6 +105,8 @@ impl Game {
         let song_nr = 0;
         const SPACE_PIXELS: u8 = 200;
         let mut space = vec![];
+        let bombs = HashMap::with_capacity(MAX_BOMBS);
+        let enemies1 = HashMap::with_capacity(MAX_ENEMIES);
         for _ in 0..SPACE_PIXELS {
             space.push((
                 rng.u8(0..(SCREEN_SIZE as u8)),
@@ -120,10 +127,10 @@ impl Game {
             frame_count: 0,
             prev_gamepad: 0,
             prev_mouse: 0,
-            bombs: HashMap::new(),
+            bombs,
             snake,
             rng,
-            enemies1: HashMap::new(),
+            enemies1,
             space,
             enemy_color: COLOR1,
             en_frame,
@@ -148,7 +155,15 @@ impl Game {
     pub fn input(&mut self, movement_enabled: bool) {
         let gamepad = unsafe { *GAMEPAD1 };
         let just_pressed_gamepad = gamepad & (gamepad ^ self.prev_gamepad);
+
+        let mouse = unsafe { *MOUSE_BUTTONS };
+        let mouse_x = unsafe { *MOUSE_X };
+        let mouse_y = unsafe { *MOUSE_Y };
+        let just_pressed_mouse = mouse & (mouse ^ self.prev_mouse);
+
         self.snake.stop();
+
+        // Adjust snake direction/movement
         if movement_enabled && gamepad & wasm4::BUTTON_LEFT != 0 {
             self.snake.left();
         }
@@ -161,16 +176,7 @@ impl Game {
         if movement_enabled && gamepad & wasm4::BUTTON_DOWN != 0 {
             self.snake.down();
         }
-        if movement_enabled && just_pressed_gamepad & wasm4::BUTTON_1 != 0 {
-            // X
-            self.snake.switch_color();
-        }
 
-        let mouse = unsafe { *MOUSE_BUTTONS };
-        let mouse_x = unsafe { *MOUSE_X };
-        let mouse_y = unsafe { *MOUSE_Y };
-
-        let just_pressed_mouse = mouse & (mouse ^ self.prev_mouse);
         if movement_enabled && mouse & MOUSE_LEFT != 0 {
             let new_d_x =
                 mouse_x as f64 - self.snake.get_position().x - self.snake.get_size() as f64 / 2.0
@@ -193,14 +199,31 @@ impl Game {
                 })
             }
         }
-        if movement_enabled && just_pressed_mouse & MOUSE_RIGHT != 0 {
+
+        // Player color switch
+        if movement_enabled
+            && ((just_pressed_gamepad & wasm4::BUTTON_1 != 0)
+                || (just_pressed_mouse & MOUSE_RIGHT != 0))
+        {
+            // X
             self.snake.switch_color();
+            // if self.snake.get_color() == COLOR1 {
+            //     color1_sound();
+            // } else {
+            //     color2_sound();
+            // }
         }
+
+        // Palette change
         if just_pressed_mouse & MOUSE_MIDDLE != 0 || just_pressed_gamepad & BUTTON_2 != 0 {
             self.palette_n = (self.palette_n + 1) % PALETTES.len() as u8;
             palette::set_palette_n(self.palette_n as usize);
         }
-        if just_pressed_gamepad & wasm4::BUTTON_1 != 0 || just_pressed_mouse & MOUSE_LEFT != 0 {
+
+        // In a non-playing screen, waiting for input
+        if (self.show_title || self.show_htp || self.show_game_over)
+            && (just_pressed_gamepad & wasm4::BUTTON_1 != 0 || just_pressed_mouse & MOUSE_LEFT != 0)
+        {
             // X
             if !self.show_title && self.show_htp {
                 self.show_htp = false;
@@ -233,6 +256,7 @@ impl Game {
             htp_screen(self.frame_count as usize);
             return;
         }
+
         set_draw_color(0x12);
         text(self.score.to_string(), 1, 1);
         text(
@@ -262,6 +286,18 @@ impl Game {
                 BLIT_1BPP,
             );
         }
+        if self.death_happened() {
+            self.death_tick();
+            return;
+        }
+
+        if self.snake.get_life() <= 0 {
+            self.show_game_over = true;
+            self.song_nr = 0;
+            game_over_screen(self.frame_count as usize);
+            return;
+        }
+
         // Set difficulty
         for (i, mul) in self.diff_mul_spike.iter().enumerate() {
             if self.multiplier < *mul {
@@ -269,16 +305,7 @@ impl Game {
                 break;
             }
         }
-        if self.death_happened() {
-            self.death_tick();
-            return;
-        }
-        if self.snake.get_life() <= 0 {
-            self.show_game_over = true;
-            self.song_nr = 0;
-            game_over_screen(self.frame_count as usize);
-            return;
-        }
+
         // Change generated enemy color
         if self.frame_count % self.en_col_frame[self.difficulty as usize] as u32 == 0 {
             if self.enemy_color == COLOR2 {
@@ -376,23 +403,30 @@ impl Game {
             }
         }
         if snake_died {
+            trace("Snake died");
             self.snake.set_life(self.snake.get_life() - 1);
             self.killer = killer;
-            self.enemies1.drain();
+            self.enemies1.clear();
+            death_sound();
         }
-
+        let mut deleted = 0;
         for td in to_delete {
+            deleted += 1;
             self.enemies1.remove(&td);
         }
-
+        if deleted > 0 {
+            // trace("Deleted:".to_owned() + deleted.to_string().as_str());
+        }
         let mut to_delete: Vec<u32> = vec![];
         for (id, boxed) in self.bombs.iter_mut() {
             if boxed.0.collided_with(&self.snake) {
                 if !boxed.1 {
                     // Add extra points
+                    trace("bomb");
                     self.score = (self.score + 10 * self.multiplier).clamp(0, 999_999_999);
                     self.high_score = max(self.score, self.high_score);
                     self.multiplier += 10;
+                    bomb_sound();
                 }
                 boxed.1 = true;
             }
@@ -410,8 +444,10 @@ impl Game {
             self.bombs.remove(&td);
         }
         if self.score > self.score_next_life {
+            trace("extra life");
             self.snake.set_life(self.snake.get_life() + 1);
             self.score_next_life *= 2;
+            extra_life_sound();
         }
 
         // Update music appropriately
@@ -420,8 +456,17 @@ impl Game {
             2 => self.song_nr = 2,
             3 => self.song_nr = 3,
             4 => self.song_nr = 4,
-            5 => self.song_nr = 5,
-            _ => self.song_nr = 6,
+            _ => self.song_nr = 5,
+        }
+
+        // Print Statistics
+        if self.frame_count % 60 == 0 {
+            trace(
+                "Enemies:".to_owned()
+                    + self.enemies1.len().to_string().as_str()
+                    + "/"
+                    + self.enemies1.capacity().to_string().as_str(),
+            );
         }
     }
 

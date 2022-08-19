@@ -7,6 +7,51 @@ use crate::{
     },
 };
 
+pub fn bomb_sound() {
+    // bomb explosion sound
+    tone(
+        380 | (10 << 16),
+        10 | (10 << 16),
+        10,
+        TONE_PULSE1 | TONE_MODE3,
+    );
+}
+pub fn death_sound() {
+    // player death sound
+    tone(
+        140 | (110 << 16),
+        3 | (6 << 16),
+        60,
+        TONE_NOISE | TONE_MODE3,
+    );
+}
+
+pub fn extra_life_sound() {
+    tone(
+        0 | (6000 << 16),
+        1 | (3 << 8) | (8 << 16) | (3 << 24),
+        100 | (100 << 8),
+        TONE_PULSE1 | TONE_MODE1,
+    );
+}
+
+pub fn color1_sound() {
+    tone(
+        340,
+        1 | (3 << 8) | (8 << 16) | (0 << 24),
+        0 | (24 << 8),
+        TONE_TRIANGLE | TONE_MODE1,
+    );
+}
+pub fn color2_sound() {
+    tone(
+        360,
+        1 | (3 << 8) | (8 << 16) | (3 << 24),
+        0 | (24 << 8),
+        TONE_TRIANGLE | TONE_MODE1,
+    );
+}
+
 pub fn music_player(ext_counter: usize, song_n: u8) {
     song_player(&ext_counter, song_n);
 }
@@ -327,21 +372,21 @@ E3, XX, E3, XX,
 // Bar 8
 XX, XX, XX, XX,
 // Bar 9
-G3, XX, D4, XX,
+XX, XX, XX, XX,
 // Bar 10
-A4, XX, E4, XX,
+E4, XX, D4, XX,
 // Bar 11
-XX, XX, E3, XX,
+Cd4_Db4, XX, D4, XX,
 // Bar 12
-XX, XX, XX, XX,
+E4, XX, Gd4_Ab4, XX,
 // Bar 13
-D3, XX, D3, XX,
-// Bar 13
-E3, XX, D3, XX,
+XX, XX, E4, XX,
 // Bar 14
-E3, XX, E3, XX,
+A4, XX, XX, XX,
+// Bar 15
+G4, XX, A4, XX,
 // Bar 16
-XX, XX, XX, XX,
+E4, XX, XX, XX,
 ];
 
 #[rustfmt::skip]
