@@ -11,8 +11,11 @@ mod wasm4;
 use game::Game;
 use lazy_static::lazy_static;
 use std::sync::Mutex;
-mod collisions;
+mod intro_screen;
+mod music;
+mod notes;
 mod start_screen;
+mod title_image;
 
 lazy_static! {
     static ref SNAKE_GAME: Mutex<Game> = Mutex::new(Game::new());

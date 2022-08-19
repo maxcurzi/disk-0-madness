@@ -1,6 +1,5 @@
 [build]
 target = "wasm32-unknown-unknown"
-# target = "x86_64-unknown-linux-gnu"
 
 [target.wasm32-unknown-unknown]
 rustflags = [
@@ -12,10 +11,17 @@ rustflags = [
     # Temporary workaround for #255 issue.
     # Reserve 8192 bytes of Rust stack space, offset from 6560.
     # Bump this value, 16-byte aligned, if the framebuffer gets corrupted.
-    "-C", "link-arg=-zstack-size=14752",
+    # "-C", "link-arg=-zstack-size=14752",
+    "-C", "link-arg=-zstack-size=18848",
 ]
 
 [profile.release]
+opt-level = "z"
+lto = true
+panic = "abort"
+strip = true
+
+[profile.dev]
 opt-level = "z"
 lto = true
 panic = "abort"

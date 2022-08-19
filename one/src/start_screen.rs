@@ -2,11 +2,35 @@ use crate::{
     bomb::Bomb,
     enemy::Enemy1,
     entity::{Coord, Visible},
+    intro_screen::{INTRO_SCREEN, INTRO_SCREEN_FLAGS, INTRO_SCREEN_HEIGHT, INTRO_SCREEN_WIDTH},
     palette::{set_draw_color, COLOR1, COLOR2},
     snake::Snake1,
-    wasm4::{rect, text},
+    title_image::{TITLE1, TITLE1_FLAGS, TITLE1_HEIGHT, TITLE1_WIDTH},
+    wasm4::{blit, rect, text, DRAW_COLORS, SCREEN_SIZE},
 };
-pub fn htp_screen() {
+
+pub fn title_screen(tick: usize) {
+    unsafe { *DRAW_COLORS = 0x1234 };
+    blit(
+        &INTRO_SCREEN,
+        0,
+        0,
+        INTRO_SCREEN_WIDTH,
+        INTRO_SCREEN_HEIGHT,
+        INTRO_SCREEN_FLAGS,
+    );
+    unsafe { *DRAW_COLORS = 0x0234 };
+    blit(
+        &TITLE1,
+        20 + tick as i32 % 11 / 4,
+        110 + tick as i32 % 7 / 4,
+        TITLE1_WIDTH,
+        TITLE1_HEIGHT,
+        TITLE1_FLAGS,
+    );
+}
+
+pub fn htp_screen(tick: usize) {
     let voff = 5;
     let hoff = 20;
     set_draw_color(0x11);
@@ -63,8 +87,25 @@ pub fn htp_screen() {
 
     set_draw_color(0x23);
     rect(hoff - 10, voff + 122, 140, 14);
-    set_draw_color(0x04);
+    if (tick / 5) % 10 < 4 {
+        set_draw_color(0x00);
+    } else {
+        set_draw_color(0x04);
+    }
     text("Push X to start", hoff, voff + 125);
     set_draw_color(0x13);
-    text("Z: palette", hoff + 60, voff + 145);
+    text("Z:palette", hoff + 66, voff + 145);
+}
+
+pub fn game_over_screen(tick: usize) {
+    set_draw_color(0x14);
+    text(
+        "GAME OVER",
+        SCREEN_SIZE as i32 / 2 - 35,
+        SCREEN_SIZE as i32 / 2 - 10,
+    );
+    if (tick / 5) % 10 < 4 {
+        set_draw_color(0x00);
+    }
+    text("press X to restart", 8, SCREEN_SIZE as i32 / 2 + 15);
 }

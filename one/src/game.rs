@@ -6,12 +6,13 @@ use crate::draws::pixel;
 use crate::enemy::Enemy1;
 use crate::entity::Coord;
 use crate::entity::{Movable, Visible};
+use crate::music::music_player;
 use crate::palette::COLOR2;
 use crate::palette::HEART;
 use crate::palette::{self, set_draw_color};
 use crate::palette::{COLOR1, PALETTES};
 use crate::snake::Snake1;
-use crate::start_screen::htp_screen;
+use crate::start_screen::{game_over_screen, htp_screen, title_screen};
 use crate::wasm4::diskr;
 use crate::wasm4::diskw;
 use crate::wasm4::text;
@@ -28,7 +29,7 @@ use fastrand::Rng;
 
 const MAX_ENEMIES: usize = 120;
 const MAX_BOMBS: usize = 16;
-const INIT_LIVES: i32 = 4;
+const INIT_LIVES: i32 = 99;
 const BOMB_FRAME_FREQ: u32 = 400;
 
 pub struct Game {
@@ -54,7 +55,9 @@ pub struct Game {
     score_next_life: u32,
     palette_n: u8,
     show_htp: bool,
+    show_title: bool,
     show_game_over: bool,
+    song_nr: u8,
 }
 
 impl Game {
@@ -73,7 +76,9 @@ impl Game {
         self.score_next_life = 100_000;
         self.palette_n = 0;
         self.show_htp = false;
+        self.show_title = false;
         self.show_game_over = false;
+        self.song_nr = 1;
     }
     pub fn new() -> Self {
         let rng = Rng::with_seed(555);
@@ -89,7 +94,9 @@ impl Game {
         let score_next_life = 100_000;
         let palette_n = 0;
         let show_htp = true;
+        let show_title = true;
         let show_game_over = false;
+        let song_nr = 0;
         const SPACE_PIXELS: u8 = 200;
         let mut space = vec![];
         for _ in 0..SPACE_PIXELS {
@@ -131,7 +138,9 @@ impl Game {
             score_next_life,
             palette_n,
             show_htp,
+            show_title,
             show_game_over,
+            song_nr,
         }
     }
 
@@ -192,8 +201,12 @@ impl Game {
         }
         if just_pressed_gamepad & wasm4::BUTTON_1 != 0 || just_pressed_mouse & MOUSE_LEFT != 0 {
             // X
-            if self.show_htp {
+            if !self.show_title && self.show_htp {
                 self.show_htp = false;
+                self.initialize_game();
+            }
+            if self.show_title {
+                self.show_title = false;
             }
             if self.show_game_over {
                 self.save_and_restart();
@@ -206,11 +219,17 @@ impl Game {
     }
 
     pub fn update(&mut self) {
+        self.frame_count += 1;
+        music_player((self.frame_count / 5) as usize, self.song_nr);
+
         self.draw_space();
         self.input(!self.death_happened());
-
+        if self.show_title {
+            title_screen(self.frame_count as usize);
+            return;
+        }
         if self.show_htp {
-            htp_screen();
+            htp_screen(self.frame_count as usize);
             return;
         }
         set_draw_color(0x12);
@@ -242,7 +261,6 @@ impl Game {
                 BLIT_1BPP,
             );
         }
-        self.frame_count += 1;
         // Set difficulty
         for (i, mul) in self.diff_mul_spike.iter().enumerate() {
             if self.multiplier < *mul {
@@ -255,7 +273,9 @@ impl Game {
             return;
         }
         if self.snake.get_life() <= 0 {
-            self.game_over_tick();
+            self.show_game_over = true;
+            self.song_nr = 0;
+            game_over_screen(self.frame_count as usize);
             return;
         }
         // Change generated enemy color
@@ -424,17 +444,6 @@ impl Game {
             self.death_countdown = 6;
             self.respite = 180;
         }
-    }
-
-    fn game_over_tick(&mut self) {
-        self.show_game_over = true;
-        set_draw_color(0x14);
-        text(
-            "GAME OVER",
-            SCREEN_SIZE as i32 / 2 - 35,
-            SCREEN_SIZE as i32 / 2 - 10,
-        );
-        text("press X to restart", 8, SCREEN_SIZE as i32 / 2 + 15);
     }
 
     fn save_and_restart(&mut self) {
