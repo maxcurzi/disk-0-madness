@@ -158,7 +158,7 @@ impl Game {
 
         self.snake.stop();
 
-        // Adjust snake direction/movement
+        // Adjust snake direction/movement [gamepad]
         if movement_enabled && gamepad & wasm4::BUTTON_LEFT != 0 {
             self.snake.left();
         }
@@ -172,13 +172,12 @@ impl Game {
             self.snake.down();
         }
 
-        if movement_enabled && mouse & MOUSE_LEFT != 0 {
+        // Adjust snake direction/movement [mouse R-hold]
+        if movement_enabled && mouse & MOUSE_RIGHT != 0 {
             let new_d_x =
-                mouse_x as f64 - self.snake.get_position().x - self.snake.get_size() as f64 / 2.0
-                    + 1.0;
+                mouse_x as f64 - self.snake.get_position().x - self.snake.get_size() as f64 / 2.0;
             let new_d_y =
-                mouse_y as f64 - self.snake.get_position().y - self.snake.get_size() as f64 / 2.0
-                    + 1.0;
+                mouse_y as f64 - self.snake.get_position().y - self.snake.get_size() as f64 / 2.0;
             if (new_d_x.abs() > 1.0 || new_d_y.abs() > 1.0)
             // To work on mobile (where the DPAD is on the screen) limit the
             // pointer interaction to just around the play area. Otherwise the
@@ -195,12 +194,11 @@ impl Game {
             }
         }
 
-        // Player color switch
+        // Player color switch [gamepad X or mouse L-click]
         if movement_enabled
             && ((just_pressed_gamepad & wasm4::BUTTON_1 != 0)
-                || (just_pressed_mouse & MOUSE_RIGHT != 0))
+                || (just_pressed_mouse & MOUSE_LEFT != 0))
         {
-            // X or Click
             self.snake.switch_color();
         }
 
@@ -223,7 +221,7 @@ impl Game {
                 self.show_title = false;
             }
             if self.show_game_over {
-                self.save_and_restart();
+                self.initialize_game();
                 self.show_game_over = false;
             }
         }
@@ -289,6 +287,14 @@ impl Game {
         if self.snake.get_life() <= 0 {
             self.show_game_over = true;
             self.song_nr = GAME_OVER_SONG as u8;
+
+            // Save high score
+            let game_data: u32 = self.score;
+            unsafe {
+                let game_data_bytes = game_data.to_le_bytes();
+                diskw(game_data_bytes.as_ptr(), core::mem::size_of::<u32>() as u32);
+            }
+
             game_over_screen(self.frame_count as usize);
             return;
         }
@@ -508,11 +514,6 @@ impl Game {
     }
 
     fn save_and_restart(&mut self) {
-        let game_data: u32 = self.score;
-        unsafe {
-            let game_data_bytes = game_data.to_le_bytes();
-            diskw(game_data_bytes.as_ptr(), core::mem::size_of::<u32>() as u32);
-        }
         self.initialize_game();
     }
 }
