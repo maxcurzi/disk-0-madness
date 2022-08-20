@@ -2,8 +2,8 @@
 use crate::{
     notes::*,
     wasm4::{
-        tone, TONE_MODE1, TONE_MODE3, TONE_MODE4, TONE_NOISE, TONE_PAN_LEFT, TONE_PAN_RIGHT,
-        TONE_PULSE1, TONE_PULSE2, TONE_TRIANGLE,
+        tone, TONE_MODE1, TONE_MODE2, TONE_MODE3, TONE_MODE4, TONE_NOISE, TONE_PAN_LEFT,
+        TONE_PAN_RIGHT, TONE_PULSE1, TONE_PULSE2, TONE_TRIANGLE,
     },
 };
 
@@ -148,8 +148,8 @@ const SONG1_6: Song = [
     Some((T_3_0, 1 | (16 << 8), 60, TONE_NOISE | TONE_MODE3)),
 ];
 const SONG2: Song = [
-    Some((T_2_2, 8, 60 | (10 << 8), TONE_PULSE1 | TONE_MODE1)),
-    None, //Some((T_1_0, 10, 70, TONE_PULSE2 | TONE_MODE1)),
+    Some((T_2_2, 8, 100, TONE_TRIANGLE | TONE_MODE4)),
+    Some((T_2_2, 8, 40, TONE_PULSE1 | TONE_MODE1)),
     None, //Some((T_2_0, 10, 60 | (10 << 8), TONE_TRIANGLE | TONE_MODE1)),
     Some((T_3_0b, 1 | (10 << 8), 40, TONE_NOISE | TONE_MODE3)),
 ];
