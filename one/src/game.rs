@@ -285,6 +285,7 @@ impl Game {
         }
 
         if self.snake.get_life() <= 0 {
+            self.high_score = max(self.score, self.high_score);
             self.show_game_over = true;
             self.song_nr = GAME_OVER_SONG as u8;
 
@@ -383,7 +384,6 @@ impl Game {
                     if self.score > self.high_score {
                         self.new_high_score = true;
                     }
-                    self.high_score = max(self.score, self.high_score);
                     self.multiplier += 1;
                 } else {
                     // Snake dies
@@ -430,7 +430,6 @@ impl Game {
                     // Add extra points
                     // trace("bomb");
                     self.score = (self.score + 10 * self.multiplier).clamp(0, 999_999_999);
-                    self.high_score = max(self.score, self.high_score);
                     self.multiplier += 10;
                     bomb_sound();
                 }
