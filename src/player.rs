@@ -23,11 +23,11 @@ impl Visible for Player {
 impl Player {
     pub fn new() -> Self {
         let mut s = Player(Entity::new());
-        s.0.size = 6.0;
-        s.0.position.x = (SCREEN_SIZE as f64 - s.0.size) / 2.0;
-        s.0.position.y = (SCREEN_SIZE as f64 - s.0.size) / 2.0;
+        s.0.size = 7.0;
+        s.0.position.x = (SCREEN_SIZE as f64 - s.0.size) / 2.0; // Start centered
+        s.0.position.y = (SCREEN_SIZE as f64 - s.0.size) / 2.0; // Start centered
         s.0.direction.x = 1.0;
-        s.0.speed = 1.45;
+        s.0.speed = 1.40;
         s.0.color = COLOR2;
         s
     }
@@ -66,8 +66,8 @@ impl Player {
     pub fn get_position(&self) -> Coord {
         self.0.position
     }
-    pub fn get_size(&self) -> u32 {
-        self.0.size as u32
+    pub fn get_size(&self) -> f64 {
+        self.0.size
     }
     pub fn get_life(&self) -> i32 {
         self.0.life

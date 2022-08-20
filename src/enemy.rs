@@ -12,10 +12,11 @@ impl Movable for Enemy {
 }
 
 impl Enemy {
-    pub fn follow(&mut self, snake: &Player) {
-        let new_dir_x = snake.get_position().x + (snake.get_size() as f64 / 2.0)
+    pub fn follow(&mut self, player: &Player) {
+        // Standard pure pursuit
+        let new_dir_x = player.get_position().x + (player.get_size() as f64 / 2.0)
             - (self.0.position.x + self.0.size as f64 / 2.0);
-        let new_dir_y = snake.get_position().y + (snake.get_size() as f64 / 2.0)
+        let new_dir_y = player.get_position().y + (player.get_size() as f64 / 2.0)
             - (self.0.position.y + self.0.size as f64 / 2.0);
         let ddx = self.0.direction.x - new_dir_x;
         let ddy = self.0.direction.y - new_dir_y;
@@ -23,6 +24,8 @@ impl Enemy {
         if norm <= 2.0 * EPSILON {
             return;
         }
+
+        // Rate limit turns to make enemies slightly slower to follow sharp turns for more satisfying scapes
         let ddx_norm = (self.0.direction.x - new_dir_x / norm).clamp(-0.09, 0.09);
         let ddy_norm = (self.0.direction.y - new_dir_y / norm).clamp(-0.09, 0.09);
         self.0.direction.x -= ddx_norm;
@@ -62,14 +65,25 @@ impl Enemy {
     pub fn get_color(&self) -> u16 {
         self.0.color
     }
-    pub fn collided_with(&self, snake: &Player) -> bool {
+    pub fn collided_with(&self, player: &Player) -> bool {
+        let mut extra_reach: f64 = 0.0;
+
+        if player.get_color() != self.get_color() {
+            extra_reach = -2.0; // Reduce player size to allow satisfying escapes
+        } else {
+            extra_reach = 1.0; // Increase player size to make easy to absorbe
+        }
+
         let other: Entity = Entity {
-            position: snake.get_position(),
+            position: Coord {
+                x: player.get_position().x - extra_reach,
+                y: player.get_position().y - extra_reach,
+            },
             direction: Coord { x: 0.0, y: 0.0 }, //don't care
-            size: snake.get_size() as f64,
+            size: player.get_size() as f64 + extra_reach * 2.0,
             speed: 0.0, //don't care
             id: 0,      //don't care
-            color: snake.get_color(),
+            color: player.get_color(),
             life: 0, //don't care
         };
         self.0.collided_with(&other)

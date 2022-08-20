@@ -1,4 +1,4 @@
-use crate::palette::set_draw_color;
+use crate::palette::{set_draw_color, COLOR_BOMB};
 use crate::wasm4::{oval, SCREEN_SIZE};
 use std::f64::EPSILON;
 use std::ops::{Add, Sub};
@@ -112,10 +112,10 @@ impl Visible for Entity {
         let distance = (dx * dx + dy * dy).sqrt();
 
         let mut tolerance = 0.0;
-        if other.color != self.color {
-            // Makes it easy to sneak past enemies for satisfying escapes
-            tolerance = -2.0;
-        }
+        // if other.color != self.color{
+        //     // Makes it easy to sneak past enemies for satisfying escapes
+        //     tolerance = -2.0;
+        // }
         distance < radius1 + radius2 + tolerance
     }
 }

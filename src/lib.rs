@@ -18,7 +18,7 @@ mod start_screen;
 mod title_image;
 
 lazy_static! {
-    static ref SNAKE_GAME: Mutex<Game> = Mutex::new(Game::new());
+    static ref PLAYER_GAME: Mutex<Game> = Mutex::new(Game::new());
 }
 
 #[no_mangle]
@@ -28,5 +28,5 @@ fn start() {
 
 #[no_mangle]
 fn update() {
-    SNAKE_GAME.lock().expect("game_state").update();
+    PLAYER_GAME.lock().expect("game_state").update();
 }

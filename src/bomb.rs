@@ -1,6 +1,6 @@
 use crate::enemy::Enemy;
 use crate::entity::{Coord, Entity, Visible};
-use crate::palette::COLOR3;
+use crate::palette::COLOR_BOMB;
 use crate::player::Player;
 use crate::wasm4::SCREEN_SIZE;
 
@@ -19,21 +19,14 @@ impl Visible for Bomb {
 impl Bomb {
     pub fn new(pos: &Coord) -> Self {
         let mut b = Bomb(Entity::new());
-        b.0.size = 8.0;
+        b.0.size = 9.0;
         b.0.position.x = pos.x;
         b.0.position.y = pos.y;
         b.0.speed = 0.0;
         b.0.life = 60 / 2;
-        b.0.color = COLOR3;
+        b.0.color = COLOR_BOMB;
         b
     }
-
-    // pub fn get_position(&self) -> Coord {
-    //     self.0.position
-    // }
-    // pub fn get_size(&self) -> u32 {
-    //     self.0.size as u32
-    // }
 
     pub fn grow(&mut self) {
         let grow_amt = 3.5;
@@ -51,37 +44,40 @@ impl Bomb {
         self.0.life
     }
 
-    // pub fn id(&self) -> u32 {
-    //     self.0.id
-    // }
-    pub fn collided_with(&self, snake: &Player) -> bool {
+    pub fn id(&self) -> usize {
+        self.0.id
+    }
+
+    pub fn collided_with_player(&self, player: &Player) -> bool {
+        let extra_reach = 1.0;
         let other: Entity = Entity {
             position: Coord {
-                x: snake.get_position().x - 2.0,
-                y: snake.get_position().y - 2.0,
+                x: player.get_position().x - extra_reach,
+                y: player.get_position().y - extra_reach,
             },
             direction: Coord { x: 0.0, y: 0.0 }, //don't care
-            size: snake.get_size() as f64 + 4.0,
-            speed: 0.0, //don't care
-            id: 0,      //don't care
-            color: 0,   //don't care
-            life: 0,    //don't care
+            size: player.get_size() as f64 + extra_reach * 2.0, // Make bombs easy to trigger
+            speed: 0.0,                          //don't care
+            id: 0,                               //don't care
+            color: 0,                            //don't care
+            life: 0,                             //don't care
         };
         self.0.collided_with(&other)
     }
 
     pub fn collided_with_enemy(&self, enemy: &Enemy) -> bool {
+        let extra_reach = 2.0;
         let other: Entity = Entity {
             position: Coord {
-                x: enemy.get_position().x - 2.0,
-                y: enemy.get_position().y - 2.0,
+                x: enemy.get_position().x - extra_reach,
+                y: enemy.get_position().y - extra_reach,
             },
             direction: Coord { x: 0.0, y: 0.0 }, //don't care
-            size: enemy.get_size() as f64 + 4.0,
-            speed: 0.0, //don't care
-            id: 0,      //don't care
-            color: 0,   //don't care
-            life: 0,    //don't care
+            size: enemy.get_size() as f64 + extra_reach * 2.0, // Make bombs turn enemies easily
+            speed: 0.0,                          //don't care
+            id: 0,                               //don't care
+            color: 0,                            //don't care
+            life: 0,                             //don't care
         };
         self.0.collided_with(&other)
     }

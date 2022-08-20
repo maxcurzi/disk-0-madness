@@ -16,7 +16,7 @@ pub fn set_palette_n(palette_n: usize) {
 
 // Color info
 #[rustfmt::skip]
-pub const PALETTES: [[u32; 4]; 9] = [
+pub const PALETTES: [[u32; 4]; 10] = [
     [0x120136, 0x035AA6, 0x40BAD5, 0xFCBF1E],
     [0x100720, 0x31087B, 0xFA2FB5, 0xFFC23C],
     [0xfff6d3, 0xf9a875, 0xeb6b6f, 0x7c3f58],
@@ -37,12 +37,14 @@ pub const PALETTES: [[u32; 4]; 9] = [
     [0x001E6C, 0x035397, 0xE8630A, 0xFCD900],
 
     // https://colorhunt.co/palette/06113cff8c32ddddddeeeeee
-    [0x06113C, 0xFF8C32, 0xDDDDDD, 0xEEEEEE]
+    [0x06113C, 0xFF8C32, 0xDDDDDD, 0xEEEEEE],
+
+    [0x12000A, 0x3B9E0C, 0x0A7E48, 0x9E0C50],
 ];
 
 pub const COLOR1: u16 = 0x32;
 pub const COLOR2: u16 = 0x34;
-pub const COLOR3: u16 = 0x30;
+pub const COLOR_BOMB: u16 = 0x30;
 
 #[rustfmt::skip]
 pub const HEART: [u8; 8] = [
