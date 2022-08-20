@@ -19,11 +19,11 @@ rustflags = [
 [profile.release]
 opt-level = "z"
 lto = true
-# panic = "abort"
+panic = "abort"
 strip = true
 
 [profile.dev]
 opt-level = "z"
 lto = true
-# panic = "abort"
+panic = "abort"
 strip = true
