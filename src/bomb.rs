@@ -1,7 +1,7 @@
-use crate::enemy::Enemy1;
+use crate::enemy::Enemy;
 use crate::entity::{Coord, Entity, Visible};
 use crate::palette::COLOR3;
-use crate::snake::Snake1;
+use crate::player::Player;
 use crate::wasm4::SCREEN_SIZE;
 
 #[derive(Debug, Copy, Clone)]
@@ -54,7 +54,7 @@ impl Bomb {
     // pub fn id(&self) -> u32 {
     //     self.0.id
     // }
-    pub fn collided_with(&self, snake: &Snake1) -> bool {
+    pub fn collided_with(&self, snake: &Player) -> bool {
         let other: Entity = Entity {
             position: Coord {
                 x: snake.get_position().x - 2.0,
@@ -70,7 +70,7 @@ impl Bomb {
         self.0.collided_with(&other)
     }
 
-    pub fn collided_with_enemy(&self, enemy: &Enemy1) -> bool {
+    pub fn collided_with_enemy(&self, enemy: &Enemy) -> bool {
         let other: Entity = Entity {
             position: Coord {
                 x: enemy.get_position().x - 2.0,

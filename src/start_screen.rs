@@ -1,10 +1,10 @@
 use crate::{
     bomb::Bomb,
-    enemy::Enemy1,
+    enemy::Enemy,
     entity::{Coord, Visible},
     intro_screen::{INTRO_SCREEN, INTRO_SCREEN_FLAGS, INTRO_SCREEN_HEIGHT, INTRO_SCREEN_WIDTH},
     palette::{set_draw_color, COLOR1, COLOR2},
-    snake::Snake1,
+    player::Player,
     title_image::{TITLE1, TITLE1_FLAGS, TITLE1_HEIGHT, TITLE1_WIDTH},
     wasm4::{blit, rect, text, DRAW_COLORS, SCREEN_SIZE},
 };
@@ -42,73 +42,54 @@ pub fn htp_screen(tick: usize) {
     let voff = 5;
     let hoff = 20;
 
-    // set_draw_color(0x13);
-    // text(x, 1, 1);
     set_draw_color(0x11);
-    rect(hoff, voff, 120, 140);
+    rect(hoff, voff, SCREEN_SIZE - 40, SCREEN_SIZE - 20);
     set_draw_color(0x23);
-    rect(hoff - 18, voff + 3, 156, 15);
+    rect(hoff - 18, voff + 3, SCREEN_SIZE - 4, 15);
     set_draw_color(0x02);
     text("--- HOW TO PLAY ---", hoff - 16, voff + 7);
-    let mut snake1 = Snake1::new();
+    let mut player = Player::new();
 
     set_draw_color(0x12);
     text("   You:", hoff, voff + 25);
     text(" Avoid:", hoff, voff + 35);
     text("Absorb:", hoff, voff + 45);
-    snake1.set_position(Coord {
+    player.set_position(Coord {
         x: hoff as f64 + 59.0,
         y: voff as f64 + 25.0,
     });
-    snake1.draw();
+    player.draw();
 
-    let enemy = Enemy1::new(0, hoff as f64 + 60.0, voff as f64 + 36.0, COLOR1);
+    let enemy = Enemy::new(0, hoff as f64 + 60.0, voff as f64 + 36.0, COLOR1);
     enemy.draw();
-    let enemy = Enemy1::new(0, hoff as f64 + 60.0, voff as f64 + 46.0, COLOR2);
+    let enemy = Enemy::new(0, hoff as f64 + 60.0, voff as f64 + 46.0, COLOR2);
     enemy.draw();
 
     set_draw_color(0x12);
-    // let X = "";
-    // let Z = "";
-    // let left = "";
-    // let right = "";
-    // let up = "";
-    // let down = "";
-    // text(X.to_string(), 10, 10);
-    // text(Z.to_string(), 10, 20);
-    // text(right, hoff + 60, voff + 55);
-    // text(down, hoff + 51, voff + 55);
-    // text(up, hoff + 42, voff + 55);
-    // text(left, hoff + 33, voff + 55);
-    // text(" ", hoff+ 33, 20);
-
     text(
         LEFT_ICON.to_owned() + DOWN_ICON + UP_ICON + RIGHT_ICON + ":Move",
         hoff,
         voff + 60,
     );
-    // text("/Mouse", hoff + 76, voff + 55);
     set_draw_color(0x12);
     text("   ".to_owned() + X_ICON + ": -> ->", hoff, voff + 70);
-    // text(X, hoff + 32, voff + 65);
-    // text(" ", hoff + 32, voff + 65);
-    snake1.set_position(Coord {
+    player.set_position(Coord {
         x: hoff as f64 + 40.0,
         y: voff as f64 + 70.0,
     });
-    snake1.draw();
-    snake1.set_position(Coord {
+    player.draw();
+    player.set_position(Coord {
         x: hoff as f64 + 64.0,
         y: voff as f64 + 70.0,
     });
-    snake1.switch_color();
-    snake1.draw();
-    snake1.switch_color();
-    snake1.set_position(Coord {
+    player.switch_color();
+    player.draw();
+    player.switch_color();
+    player.set_position(Coord {
         x: hoff as f64 + 88.0,
         y: voff as f64 + 70.0,
     });
-    snake1.draw();
+    player.draw();
     set_draw_color(0x12);
     text("Bombs  change", hoff, voff + 85);
     text("the enemy color", hoff, voff + 95);
@@ -120,7 +101,7 @@ pub fn htp_screen(tick: usize) {
     bomb.draw();
 
     set_draw_color(0x23);
-    rect(hoff - 10, voff + 122, 140, 13);
+    rect(hoff - 10, voff + 122, SCREEN_SIZE - 20, 13);
     if (tick / 5) % 10 < 4 {
         set_draw_color(0x00);
     } else {

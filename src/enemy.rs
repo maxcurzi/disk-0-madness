@@ -1,18 +1,18 @@
 use std::f64::EPSILON;
 
 use crate::entity::{Coord, Entity, Movable, Visible};
-use crate::snake::Snake1;
+use crate::player::Player;
 
-pub struct Enemy1(Entity);
-impl Movable for Enemy1 {
+pub struct Enemy(Entity);
+impl Movable for Enemy {
     fn update_position(&mut self) {
         self.0.update_position();
         self.0.life -= 1;
     }
 }
 
-impl Enemy1 {
-    pub fn follow(&mut self, snake: &Snake1) {
+impl Enemy {
+    pub fn follow(&mut self, snake: &Player) {
         let new_dir_x = snake.get_position().x + (snake.get_size() as f64 / 2.0)
             - (self.0.position.x + self.0.size as f64 / 2.0);
         let new_dir_y = snake.get_position().y + (snake.get_size() as f64 / 2.0)
@@ -30,7 +30,7 @@ impl Enemy1 {
     }
 
     pub fn new(id: usize, x: f64, y: f64, color: u16) -> Self {
-        let mut e = Enemy1(Entity::new());
+        let mut e = Enemy(Entity::new());
         e.0.size = 4.0;
         e.0.position.x = x;
         e.0.position.y = y;
@@ -62,7 +62,7 @@ impl Enemy1 {
     pub fn get_color(&self) -> u16 {
         self.0.color
     }
-    pub fn collided_with(&self, snake: &Snake1) -> bool {
+    pub fn collided_with(&self, snake: &Player) -> bool {
         let other: Entity = Entity {
             position: snake.get_position(),
             direction: Coord { x: 0.0, y: 0.0 }, //don't care
@@ -76,7 +76,7 @@ impl Enemy1 {
     }
 }
 
-impl Visible for Enemy1 {
+impl Visible for Enemy {
     fn draw(&self) {
         self.0.draw();
     }

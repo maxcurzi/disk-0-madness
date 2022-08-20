@@ -3,14 +3,14 @@ use std::collections::HashMap;
 
 use crate::bomb::Bomb;
 use crate::draws::pixel;
-use crate::enemy::Enemy1;
+use crate::enemy::Enemy;
 use crate::entity::{Coord, Movable, Visible};
 use crate::music::{
     bomb_sound, death_sound, extra_life_sound, music_player, GAME_OVER_SONG, GAME_SONG_START,
     INTRO_SONG, VOICE_NOTES,
 };
 use crate::palette::{self, COLOR1, COLOR2, HEART, PALETTES};
-use crate::snake::Snake1;
+use crate::player::Player;
 use crate::start_screen::{game_over_screen, htp_screen, title_screen};
 use crate::wasm4::{
     self, blit, diskr, diskw, text, trace, BLIT_1BPP, BUTTON_2, GAMEPAD1, MOUSE_BUTTONS,
@@ -30,11 +30,11 @@ const DIFFICULTY_LEVELS: usize = 10;
 pub struct Game {
     rng: Rng,
     frame_count: usize,
-    snake: Snake1,
+    snake: Player,
     prev_gamepad: u8,
     prev_mouse: u8,
     bombs: HashMap<usize, Box<(Bomb, bool)>>,
-    enemies1: HashMap<usize, Box<Enemy1>>,
+    enemies1: HashMap<usize, Box<Enemy>>,
     space: Vec<(u8, u8)>,
     enemy_color: u16,
     en_frame: [usize; DIFFICULTY_LEVELS],
@@ -46,7 +46,7 @@ pub struct Game {
     multiplier: u32,
     diff_mul_progression: [u32; DIFFICULTY_LEVELS - 1], //Vec<u32>,
     respite: i32,                                       // frames without enemies
-    killer: Option<Enemy1>,                             // store enemy that killed player
+    killer: Option<Enemy>,                              // store enemy that killed player
     death_countdown: i32,
     score_next_life: u32,
     palette_n: u8,
@@ -61,7 +61,7 @@ impl Game {
         self.difficulty = INIT_DIFFICULTY;
         self.score = 0;
         self.multiplier = 1;
-        let mut snake = Snake1::new();
+        let mut snake = Player::new();
         snake.set_life(INIT_LIVES as i32);
         self.snake = snake;
         self.enemies1.clear();
@@ -88,7 +88,7 @@ impl Game {
         let score: u32 = 0;
         let respite = 0;
         let multiplier = 1;
-        let killer: Option<Enemy1> = None;
+        let killer: Option<Enemy> = None;
         let death_countdown = 6;
         let score_next_life = 100_000;
         let palette_n = 0;
@@ -114,7 +114,7 @@ impl Game {
 
             u32::from_le_bytes(buffer)
         };
-        let mut snake = Snake1::new();
+        let mut snake = Player::new();
         snake.set_life(INIT_LIVES as i32);
 
         Self {
@@ -348,7 +348,7 @@ impl Game {
 
             self.enemies1.insert(
                 self.frame_count,
-                Box::new(Enemy1::new(
+                Box::new(Enemy::new(
                     self.frame_count,
                     pos.0 as f64,
                     pos.1 as f64,
@@ -368,7 +368,7 @@ impl Game {
 
         let mut to_delete: Vec<usize> = vec![];
         let mut snake_died = false;
-        let mut killer: Option<Enemy1> = None;
+        let mut killer: Option<Enemy> = None;
         'outer: for (_, enemy) in self.enemies1.iter_mut() {
             for boxed in self.bombs.values() {
                 if boxed.1 && boxed.0.collided_with_enemy(enemy) {
@@ -388,7 +388,7 @@ impl Game {
                 } else {
                     // Snake dies
                     snake_died = true;
-                    killer = Some(Enemy1::new(
+                    killer = Some(Enemy::new(
                         0,
                         enemy.get_position().x,
                         enemy.get_position().y,

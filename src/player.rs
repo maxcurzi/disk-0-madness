@@ -3,33 +3,15 @@ use crate::palette::{COLOR1, COLOR2, HEART};
 use crate::wasm4::{blit, BLIT_1BPP, SCREEN_SIZE};
 
 #[derive(Debug, Copy, Clone)]
-pub struct Snake1(Entity);
+pub struct Player(Entity);
 
-impl Movable for Snake1 {
+impl Movable for Player {
     fn update_position(&mut self) {
         self.0.update_position();
     }
 }
 
-impl Visible for Snake1 {
-    // fn draw(&self) {
-    //     set_draw_color(0x22);
-    //     wasm4::oval(
-    //         self.0.position.x as i32,
-    //         self.0.position.y as i32,
-    //         self.0.size as u32,
-    //         self.0.size as u32,
-    //     );
-    //     // wasm4::oval(10, 10, 10, 10);
-    // }
-
-    // fn collided_with(&self, other: &Entity) -> bool {
-    //     // Check if we're outside the square bounding box,
-    //     !(((self.0.position.x > other.position.x + other.size as f64)
-    //         || ((self.0.position.x + self.0.size as f64) < other.position.x))
-    //         && ((self.0.position.y > other.position.y + other.size as f64)
-    //             || ((self.0.position.y + self.0.size as f64) < other.position.y)))
-    // }
+impl Visible for Player {
     fn draw(&self) {
         self.0.draw();
     }
@@ -38,9 +20,9 @@ impl Visible for Snake1 {
     }
 }
 
-impl Snake1 {
+impl Player {
     pub fn new() -> Self {
-        let mut s = Snake1(Entity::new());
+        let mut s = Player(Entity::new());
         s.0.size = 6.0;
         s.0.position.x = (SCREEN_SIZE as f64 - s.0.size) / 2.0;
         s.0.position.y = (SCREEN_SIZE as f64 - s.0.size) / 2.0;
@@ -103,27 +85,7 @@ impl Snake1 {
         self.0.position.x = x;
         self.0.position.y = y;
     }
-    // pub fn get_direction(&self) -> Coord {
-    //     self.0.direction
-    // }
 
-    // pub fn grow(&mut self) {
-    //     let grow_amt = 0.8;
-    //     self.0.size = (self.0.size + grow_amt).clamp(6.0, SCREEN_SIZE as f64);
-    //     self.0.position.x = (self.0.position.x - (grow_amt as f64) / 2.0)
-    //         .clamp(0.0, (SCREEN_SIZE - self.get_size()) as f64);
-    //     self.0.position.y = (self.0.position.y - (grow_amt as f64) / 2.0)
-    //         .clamp(0.0, (SCREEN_SIZE - self.get_size()) as f64);
-    // }
-    // pub fn shrink(&mut self) {
-    //     let shrink_amt = 3.0;
-    //     let shrinkage = self.0.size - (self.0.size - shrink_amt).clamp(6.0, SCREEN_SIZE as f64);
-    //     self.0.size -= shrinkage;
-    //     self.0.position.x = (self.0.position.x + (shrinkage as f64) / 2.0)
-    //         .clamp(0.0, (SCREEN_SIZE - self.get_size()) as f64);
-    //     self.0.position.y = (self.0.position.y + (shrinkage as f64) / 2.0)
-    //         .clamp(0.0, (SCREEN_SIZE - self.get_size()) as f64);
-    // }
     pub fn switch_color(&mut self) {
         if self.0.color == COLOR1 {
             self.0.color = COLOR2;
@@ -131,12 +93,6 @@ impl Snake1 {
             self.0.color = COLOR1;
         }
     }
-    // pub fn set_c1(&mut self) {
-    //     self.0.color = COLOR1;
-    // }
-    // pub fn set_c2(&mut self) {
-    //     self.0.color = COLOR2;
-    // }
 
     pub fn get_color(&self) -> u16 {
         self.0.color

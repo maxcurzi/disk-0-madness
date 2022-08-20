@@ -6,7 +6,7 @@ mod enemy;
 mod entity;
 mod game;
 mod palette;
-mod snake;
+mod player;
 mod wasm4;
 use game::Game;
 use lazy_static::lazy_static;
