@@ -58,7 +58,7 @@ pub fn htp_screen(tick: usize) {
     enemy.draw();
 
     set_draw_color(0x12);
-    text("Move: KBD/Mouse", hoff, voff + 55);
+    text("Move: Kbd/Mouse", hoff, voff + 55);
     set_draw_color(0x12);
     text("Push X: -> ->", hoff, voff + 65);
     snake1.set_position(Coord {

@@ -36,7 +36,7 @@ pub struct Entity {
     pub direction: Coord,
     pub size: f64,
     pub speed: f64,
-    pub id: u32,
+    pub id: usize,
     pub color: u16,
     pub life: i32,
 }

@@ -1,62 +1,48 @@
-use std::char::MAX;
 use std::cmp::max;
 use std::collections::HashMap;
 
 use crate::bomb::Bomb;
 use crate::draws::pixel;
 use crate::enemy::Enemy1;
-use crate::entity::Coord;
-use crate::entity::{Movable, Visible};
-use crate::music::{
-    bomb_sound, color1_sound, color2_sound, death_sound, extra_life_sound, music_player,
-};
-use crate::palette::COLOR2;
-use crate::palette::HEART;
-use crate::palette::{self, set_draw_color};
-use crate::palette::{COLOR1, PALETTES};
+use crate::entity::{Coord, Movable, Visible};
+use crate::music::{bomb_sound, death_sound, extra_life_sound, music_player, VOICE_NOTES};
+use crate::palette::{self, COLOR1, COLOR2, HEART, PALETTES};
 use crate::snake::Snake1;
 use crate::start_screen::{game_over_screen, htp_screen, title_screen};
-use crate::wasm4::BLIT_1BPP;
-use crate::wasm4::MOUSE_BUTTONS;
-use crate::wasm4::MOUSE_LEFT;
-use crate::wasm4::MOUSE_RIGHT;
-use crate::wasm4::MOUSE_X;
-use crate::wasm4::MOUSE_Y;
-use crate::wasm4::SCREEN_SIZE;
-use crate::wasm4::{self, MOUSE_MIDDLE};
-use crate::wasm4::{blit, BUTTON_2};
-use crate::wasm4::{diskr, GAMEPAD1};
-use crate::wasm4::{diskw, tone, TONE_MODE3, TONE_PULSE1};
-use crate::wasm4::{text, trace};
+use crate::wasm4::{
+    self, blit, diskr, diskw, text, trace, BLIT_1BPP, BUTTON_2, GAMEPAD1, MOUSE_BUTTONS,
+    MOUSE_LEFT, MOUSE_MIDDLE, MOUSE_RIGHT, MOUSE_X, MOUSE_Y, SCREEN_SIZE,
+};
+
 use fastrand::Rng;
 
 const MAX_ENEMIES: usize = 200;
 const MAX_BOMBS: usize = 16;
-const INIT_LIVES: i32 = 3;
-const INIT_DIFFICULTY: u8 = 0;
-const BOMB_FRAME_FREQ: u32 = 400;
-const MUSIC_SPEED_CTRL: u32 = 5;
+const INIT_LIVES: usize = 3;
+const INIT_DIFFICULTY: usize = 0;
+const BOMB_FRAME_FREQ: usize = 400;
+const MUSIC_SPEED_CTRL: usize = 5;
 const DIFFICULTY_LEVELS: usize = 10;
 
 pub struct Game {
     rng: Rng,
-    frame_count: u32,
+    frame_count: usize,
     snake: Snake1,
     prev_gamepad: u8,
     prev_mouse: u8,
-    bombs: HashMap<u32, Box<(Bomb, bool)>>,
-    enemies1: HashMap<u32, Box<Enemy1>>,
+    bombs: HashMap<usize, Box<(Bomb, bool)>>,
+    enemies1: HashMap<usize, Box<Enemy1>>,
     space: Vec<(u8, u8)>,
     enemy_color: u16,
-    en_frame: [u8; DIFFICULTY_LEVELS],
-    difficulty: u8,
-    en_col_frame: [u8; DIFFICULTY_LEVELS],
+    en_frame: [usize; DIFFICULTY_LEVELS],
+    difficulty: usize,
+    en_col_frame: [usize; DIFFICULTY_LEVELS],
     score: u32,
     high_score: u32,
     multiplier: u32,
-    diff_mul_spike: [u32; DIFFICULTY_LEVELS], //Vec<u32>,
-    respite: i32,                             // frames without enemies
-    killer: Option<Enemy1>,                   // store enemy that killed player
+    diff_mul_progression: [u32; DIFFICULTY_LEVELS], //Vec<u32>,
+    respite: i32,                                   // frames without enemies
+    killer: Option<Enemy1>,                         // store enemy that killed player
     death_countdown: i32,
     score_next_life: u32,
     palette_n: u8,
@@ -72,7 +58,7 @@ impl Game {
         self.score = 0;
         self.multiplier = 1;
         let mut snake = Snake1::new();
-        snake.set_life(INIT_LIVES);
+        snake.set_life(INIT_LIVES as i32);
         self.snake = snake;
         self.enemies1.clear();
         self.bombs.clear();
@@ -88,9 +74,10 @@ impl Game {
     }
     pub fn new() -> Self {
         let rng = Rng::with_seed(555);
-        let en_frame: [u8; 10] = [120, 60, 30, 25, 15, 10, 8, 6, 4, 2];
-        let en_col_frame: [u8; 10] = [240, 180, 160, 120, 100, 80, 60, 60, 60, 60];
-        let diff_mul_spike: [u32; 10] = [4, 20, 50, 100, 200, 400, 600, 900, 1200, 1500];
+        let en_frame: [usize; 10] = [120, 60, 30, 25, 15, 10, 8, 6, 4, 2];
+        let en_col_frame: [usize; 10] = [240, 180, 160, 120, 100, 80, 60, 60, 60, 60];
+        // let diff_mul_spike: [u32; 10] = [4, 20, 50, 80, 100, 130, 160, 200, 250, 1500];
+        let diff_mul_progression: [u32; 10] = [4, 20, 50, 100, 200, 400, 600, 900, 1200, 1500];
         let difficulty = INIT_DIFFICULTY;
         let score: u32 = 0;
         let respite = 0;
@@ -121,7 +108,7 @@ impl Game {
             u32::from_le_bytes(buffer)
         };
         let mut snake = Snake1::new();
-        snake.set_life(INIT_LIVES);
+        snake.set_life(INIT_LIVES as i32);
 
         Self {
             frame_count: 0,
@@ -139,7 +126,7 @@ impl Game {
             score,
             high_score,
             multiplier,
-            diff_mul_spike,
+            diff_mul_progression,
             respite,
             killer,
             death_countdown,
@@ -205,13 +192,8 @@ impl Game {
             && ((just_pressed_gamepad & wasm4::BUTTON_1 != 0)
                 || (just_pressed_mouse & MOUSE_RIGHT != 0))
         {
-            // X
+            // X or Click
             self.snake.switch_color();
-            // if self.snake.get_color() == COLOR1 {
-            //     color1_sound();
-            // } else {
-            //     color2_sound();
-            // }
         }
 
         // Palette change
@@ -244,7 +226,7 @@ impl Game {
 
     pub fn update(&mut self) {
         self.frame_count += 1;
-        music_player((self.frame_count / MUSIC_SPEED_CTRL) as usize, self.song_nr);
+        music_player(self.frame_count / MUSIC_SPEED_CTRL as usize, self.song_nr);
 
         self.draw_space();
         self.input(!self.death_happened());
@@ -257,7 +239,7 @@ impl Game {
             return;
         }
 
-        set_draw_color(0x12);
+        palette::set_draw_color(0x12);
         text(self.score.to_string(), 1, 1);
         text(
             "H:".to_string() + self.high_score.to_string().as_str(),
@@ -269,12 +251,13 @@ impl Game {
             1,
             SCREEN_SIZE as i32 - 8,
         );
-        // text(
-        //     "LVL:".to_string() + (self.difficulty + 1).to_string().as_str(),
-        //     60,
-        //     SCREEN_SIZE as i32 - 8,
-        // );
-        set_draw_color(0x20);
+        #[cfg(debug_assertions)]
+        text(
+            "LVL:".to_string() + (self.difficulty + 1).to_string().as_str(),
+            60,
+            SCREEN_SIZE as i32 - 8,
+        );
+        palette::set_draw_color(0x20);
         let h_start: i32 = SCREEN_SIZE as i32 - 9;
         for l in 0..self.snake.get_life() {
             blit(
@@ -299,15 +282,15 @@ impl Game {
         }
 
         // Set difficulty
-        for (i, mul) in self.diff_mul_spike.iter().enumerate() {
+        for (i, mul) in self.diff_mul_progression.iter().enumerate() {
             if self.multiplier < *mul {
-                self.difficulty = max(i as u8, self.difficulty);
+                self.difficulty = max(i, self.difficulty);
                 break;
             }
         }
 
         // Change generated enemy color
-        if self.frame_count % self.en_col_frame[self.difficulty as usize] as u32 == 0 {
+        if self.frame_count % self.en_col_frame[self.difficulty as usize] as usize == 0 {
             if self.enemy_color == COLOR2 {
                 self.enemy_color = COLOR1;
             } else {
@@ -328,7 +311,7 @@ impl Game {
         }
         self.respite = max(self.respite - 1, 0);
         // Generate enemies
-        if self.frame_count % self.en_frame[self.difficulty as usize] as u32 == 0
+        if self.frame_count % self.en_frame[self.difficulty as usize] as usize == 0
             && self.enemies1.len() < MAX_ENEMIES
             && self.respite == 0
         {
@@ -364,7 +347,7 @@ impl Game {
 
         self.snake.draw();
 
-        let mut to_delete: Vec<u32> = vec![];
+        let mut to_delete: Vec<usize> = vec![];
         let mut snake_died = false;
         let mut killer: Option<Enemy1> = None;
         'outer: for (_, enemy) in self.enemies1.iter_mut() {
@@ -403,6 +386,7 @@ impl Game {
             }
         }
         if snake_died {
+            #[cfg(debug_assertions)]
             trace("Snake died");
             self.snake.set_life(self.snake.get_life() - 1);
             self.killer = killer;
@@ -415,14 +399,15 @@ impl Game {
             self.enemies1.remove(&td);
         }
         if deleted > 0 {
-            // trace("Deleted:".to_owned() + deleted.to_string().as_str());
+            #[cfg(debug_assertions)]
+            trace("Deleted:".to_owned() + deleted.to_string().as_str());
         }
-        let mut to_delete: Vec<u32> = vec![];
+        let mut to_delete: Vec<usize> = vec![];
         for (id, boxed) in self.bombs.iter_mut() {
             if boxed.0.collided_with(&self.snake) {
                 if !boxed.1 {
                     // Add extra points
-                    trace("bomb");
+                    // trace("bomb");
                     self.score = (self.score + 10 * self.multiplier).clamp(0, 999_999_999);
                     self.high_score = max(self.score, self.high_score);
                     self.multiplier += 10;
@@ -444,22 +429,26 @@ impl Game {
             self.bombs.remove(&td);
         }
         if self.score > self.score_next_life {
-            trace("extra life");
+            // trace("extra life");
             self.snake.set_life(self.snake.get_life() + 1);
             self.score_next_life *= 2;
             extra_life_sound();
         }
 
         // Update music appropriately
-        match self.difficulty {
-            0..=1 => self.song_nr = 1,
-            2 => self.song_nr = 2,
-            3 => self.song_nr = 3,
-            4 => self.song_nr = 4,
-            _ => self.song_nr = 5,
+        if ((self.frame_count + 1) / MUSIC_SPEED_CTRL) % VOICE_NOTES == 0 {
+            match self.difficulty {
+                0..=1 => self.song_nr = 1,
+                2 => self.song_nr = 2,
+                3 => self.song_nr = 3,
+                4 => self.song_nr = 4,
+                5 => self.song_nr = 5,
+                _ => self.song_nr = 6,
+            }
         }
 
         // Print Statistics
+        #[cfg(debug_assertions)]
         if self.frame_count % 60 == 0 {
             trace(
                 "Enemies:".to_owned()
@@ -471,7 +460,7 @@ impl Game {
     }
 
     fn draw_space(&self) {
-        set_draw_color(0x44);
+        palette::set_draw_color(0x44);
         for p in &self.space {
             pixel(p.0 as i32, p.1 as i32);
         }

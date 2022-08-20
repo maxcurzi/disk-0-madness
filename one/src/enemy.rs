@@ -29,7 +29,7 @@ impl Enemy1 {
         self.0.direction.y -= ddy_norm;
     }
 
-    pub fn new(id: u32, x: f64, y: f64, color: u16) -> Self {
+    pub fn new(id: usize, x: f64, y: f64, color: u16) -> Self {
         let mut e = Enemy1(Entity::new());
         e.0.size = 4.0;
         e.0.position.x = x;
@@ -41,7 +41,7 @@ impl Enemy1 {
         e.0.life = 10 * 60; // n seconds at 60 FPS
         e
     }
-    pub fn id(&self) -> u32 {
+    pub fn id(&self) -> usize {
         self.0.id
     }
     pub fn life(&self) -> i32 {
