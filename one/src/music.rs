@@ -129,9 +129,15 @@ const SONG1_4: Song = [
     Some((T_2_0, 10, 60 | (10 << 8), TONE_TRIANGLE | TONE_MODE1)),
     None, //Some((T_3_0, 1 | (16 << 8), 40, TONE_NOISE | TONE_MODE3)),
 ];
+const SONG1_4B: Song = [
+    Some((T_0_1, 8, 30 | (10 << 8), TONE_PULSE1 | TONE_MODE1)),
+    Some((T_1_2B, 2, 30 | (10 << 8), TONE_PULSE2 | TONE_MODE1)),
+    Some((T_2_0, 10, 60 | (10 << 8), TONE_TRIANGLE | TONE_MODE1)),
+    None, //Some((T_3_0, 1 | (16 << 8), 40, TONE_NOISE | TONE_MODE3)),
+];
 const SONG1_5: Song = [
     Some((T_0_1, 8, 40 | (10 << 8), TONE_PULSE1 | TONE_MODE1)),
-    Some((T_1_2, 2, 30 | (10 << 8), TONE_PULSE2 | TONE_MODE1)),
+    Some((T_1_2B, 2, 30 | (10 << 8), TONE_PULSE2 | TONE_MODE1)),
     Some((T_2_0, 10, 60 | (10 << 8), TONE_TRIANGLE | TONE_MODE1)),
     Some((T_3_0, 1 | (16 << 8), 40, TONE_NOISE | TONE_MODE3)),
 ];
@@ -141,6 +147,12 @@ const SONG1_6: Song = [
     Some((T_2_0, 10, 60 | (10 << 8), TONE_TRIANGLE | TONE_MODE1)),
     Some((T_3_0, 1 | (16 << 8), 60, TONE_NOISE | TONE_MODE3)),
 ];
+const SONG2: Song = [
+    Some((T_2_2, 8, 60 | (10 << 8), TONE_PULSE1 | TONE_MODE1)),
+    None, //Some((T_1_0, 10, 70, TONE_PULSE2 | TONE_MODE1)),
+    None, //Some((T_2_0, 10, 60 | (10 << 8), TONE_TRIANGLE | TONE_MODE1)),
+    Some((T_3_0b, 1 | (10 << 8), 40, TONE_NOISE | TONE_MODE3)),
+];
 // const SONG1_5: Song = [
 //     Some((T_4_0, 1 | (1 << 10), 50, TONE_TRIANGLE | TONE_MODE4)),
 //     Some((T_4_1, 20, 50, TONE_TRIANGLE | TONE_MODE4)),
@@ -148,16 +160,22 @@ const SONG1_6: Song = [
 //     None, //Some((T_3_0, 1 | (16 << 8), 40, TONE_NOISE | TONE_MODE3)),
 // ];
 #[rustfmt::skip]
-const SONGS: [Song; 7] = [
-    SONG0,
+const SONGS: [Song; 9] = [
+    SONG2,
     SONG1_0,
     SONG1_1,
     SONG1_2,
     // SONG1_3,
     SONG1_4,
+    SONG1_4B,
     SONG1_5,
     SONG1_6,
+    SONG0,
 ];
+
+pub const INTRO_SONG: u8 = 0;
+pub const GAME_SONG_START: u8 = 1;
+pub const GAME_OVER_SONG: u8 = SONGS.len() as u8 - 1;
 
 #[rustfmt::skip]
 const GAME_THEME: Voice = [
@@ -600,4 +618,115 @@ A3, XX, A3, XX,
 A3, XX, A3, XX,
 // Bar 16
 A3, XX, A3, XX,
+];
+
+#[rustfmt::skip]
+const T_1_2B: Voice = [
+
+// Bar 1
+A4, XX, A4, XX,
+// Bar 2
+A4, XX, A4, XX,
+// Bar 3
+A4, XX, A4, XX,
+// Bar 4
+B4, XX, B4, XX,
+// Bar 5
+C5, XX, C5, XX,
+// Bar 6
+C5, XX, C5, XX,
+// Bar 7
+C5, XX, C5, XX,
+// Bar 8
+C5, XX, C5, XX,
+// Bar 9
+C5, XX, C5, XX,
+// Bar 10
+C5, XX, C5, XX,
+// Bar 11
+C5, XX, C5, XX,
+// Bar 12
+B4, XX, B4, XX,
+// Bar 13
+A4, XX, A4, XX,
+// Bar 14
+A4, XX, A4, XX,
+// Bar 15
+A4, XX, A4, XX,
+// Bar 16
+A4, XX, A4, XX,
+];
+
+#[rustfmt::skip]
+const T_2_2: Voice = [
+
+// Bar 1
+G2, XX, G2, XX,
+// Bar 2
+XX, XX, A2, XX,
+// Bar 3
+XX, XX, G2, XX,
+// Bar 4
+A2, XX, XX, XX,
+// Bar 5
+D3, XX, XX, XX,
+// Bar 6
+D3, XX, E3, XX,
+// Bar 7
+D3, XX, C3, XX,
+// Bar 8
+A2, XX, C3, XX,
+// Bar 9
+A3, XX, G3, XX,
+// Bar 10
+XX, XX, E3, XX,
+// Bar 11
+XX, XX, D3, XX,
+// Bar 12
+D3, XX, C3, XX,
+// Bar 13
+XX, XX, A2, XX,
+// Bar 14
+G3, XX, A2, XX,
+// Bar 15
+G3, XX, A2, XX,
+// Bar 16
+A2, XX, XX, XX,
+];
+
+#[rustfmt::skip]
+const T_3_0b: Voice = [
+
+// Bar 1
+XX, XX, XX, XX,
+// Bar 2
+G3, XX, XX, XX,
+// Bar 3
+XX, XX, XX, XX,
+// Bar 4
+G3, XX, XX, XX,
+// Bar 5
+XX, XX, XX, XX,
+// Bar 6
+G3, XX, XX, XX,
+// Bar 7
+XX, XX, XX, XX,
+// Bar 8
+G3, XX, XX, XX,
+// Bar 9
+XX, XX, XX, XX,
+// Bar 10
+G3, XX, XX, XX,
+// Bar 11
+XX, XX, XX, XX,
+// Bar 12
+G3, XX, XX, XX,
+// Bar 13
+XX, XX, XX, XX,
+// Bar 14
+G3, XX, XX, XX,
+// Bar 15
+XX, XX, XX, XX,
+// Bar 16
+G3, XX, XX, XX,
 ];

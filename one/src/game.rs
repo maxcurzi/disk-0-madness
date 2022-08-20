@@ -5,7 +5,10 @@ use crate::bomb::Bomb;
 use crate::draws::pixel;
 use crate::enemy::Enemy1;
 use crate::entity::{Coord, Movable, Visible};
-use crate::music::{bomb_sound, death_sound, extra_life_sound, music_player, VOICE_NOTES};
+use crate::music::{
+    bomb_sound, death_sound, extra_life_sound, music_player, GAME_OVER_SONG, GAME_SONG_START,
+    INTRO_SONG, VOICE_NOTES,
+};
 use crate::palette::{self, COLOR1, COLOR2, HEART, PALETTES};
 use crate::snake::Snake1;
 use crate::start_screen::{game_over_screen, htp_screen, title_screen};
@@ -39,10 +42,11 @@ pub struct Game {
     en_col_frame: [usize; DIFFICULTY_LEVELS],
     score: u32,
     high_score: u32,
+    new_high_score: bool,
     multiplier: u32,
-    diff_mul_progression: [u32; DIFFICULTY_LEVELS], //Vec<u32>,
-    respite: i32,                                   // frames without enemies
-    killer: Option<Enemy1>,                         // store enemy that killed player
+    diff_mul_progression: [u32; DIFFICULTY_LEVELS - 1], //Vec<u32>,
+    respite: i32,                                       // frames without enemies
+    killer: Option<Enemy1>,                             // store enemy that killed player
     death_countdown: i32,
     score_next_life: u32,
     palette_n: u8,
@@ -70,14 +74,16 @@ impl Game {
         self.show_htp = false;
         self.show_title = false;
         self.show_game_over = false;
-        self.song_nr = 1;
+        self.song_nr = GAME_SONG_START;
+        self.new_high_score = false;
     }
     pub fn new() -> Self {
         let rng = Rng::with_seed(555);
         let en_frame: [usize; 10] = [120, 60, 30, 25, 15, 10, 8, 6, 4, 2];
         let en_col_frame: [usize; 10] = [240, 180, 160, 120, 100, 80, 60, 60, 60, 60];
         // let diff_mul_spike: [u32; 10] = [4, 20, 50, 80, 100, 130, 160, 200, 250, 1500];
-        let diff_mul_progression: [u32; 10] = [4, 20, 50, 100, 200, 400, 600, 900, 1200, 1500];
+        let diff_mul_progression: [u32; DIFFICULTY_LEVELS - 1] =
+            [12, 30, 60, 100, 220, 350, 500, 1000, 2000];
         let difficulty = INIT_DIFFICULTY;
         let score: u32 = 0;
         let respite = 0;
@@ -89,7 +95,8 @@ impl Game {
         let show_htp = true;
         let show_title = true;
         let show_game_over = false;
-        let song_nr = 0;
+        let song_nr = INTRO_SONG;
+        let new_high_score = false;
         const SPACE_PIXELS: u8 = 200;
         let mut space = vec![];
         let bombs = HashMap::with_capacity(MAX_BOMBS);
@@ -136,6 +143,7 @@ impl Game {
             show_title,
             show_game_over,
             song_nr,
+            new_high_score,
         }
     }
 
@@ -206,7 +214,7 @@ impl Game {
         if (self.show_title || self.show_htp || self.show_game_over)
             && (just_pressed_gamepad & wasm4::BUTTON_1 != 0 || just_pressed_mouse & MOUSE_LEFT != 0)
         {
-            // X
+            // X or Click
             if !self.show_title && self.show_htp {
                 self.show_htp = false;
                 self.initialize_game();
@@ -240,12 +248,16 @@ impl Game {
         }
 
         palette::set_draw_color(0x12);
+        if self.new_high_score && self.show_game_over && (self.frame_count / 5) % 10 < 4 {
+            palette::set_draw_color(0x00);
+        }
         text(self.score.to_string(), 1, 1);
         text(
             "H:".to_string() + self.high_score.to_string().as_str(),
             73,
             1,
         );
+        palette::set_draw_color(0x12);
         text(
             "x".to_string() + self.multiplier.to_string().as_str(),
             1,
@@ -276,7 +288,7 @@ impl Game {
 
         if self.snake.get_life() <= 0 {
             self.show_game_over = true;
-            self.song_nr = 0;
+            self.song_nr = GAME_OVER_SONG as u8;
             game_over_screen(self.frame_count as usize);
             return;
         }
@@ -362,6 +374,9 @@ impl Game {
                 if enemy.get_color() == self.snake.get_color() {
                     enemy.kill();
                     self.score = (self.score + self.multiplier).clamp(0, 999_999_999);
+                    if self.score > self.high_score {
+                        self.new_high_score = true;
+                    }
                     self.high_score = max(self.score, self.high_score);
                     self.multiplier += 1;
                 } else {
@@ -438,12 +453,13 @@ impl Game {
         // Update music appropriately
         if ((self.frame_count + 1) / MUSIC_SPEED_CTRL) % VOICE_NOTES == 0 {
             match self.difficulty {
-                0..=1 => self.song_nr = 1,
-                2 => self.song_nr = 2,
-                3 => self.song_nr = 3,
-                4 => self.song_nr = 4,
-                5 => self.song_nr = 5,
-                _ => self.song_nr = 6,
+                0..=1 => self.song_nr = GAME_SONG_START,
+                2 => self.song_nr = GAME_SONG_START + 1,
+                3 => self.song_nr = GAME_SONG_START + 2,
+                4 => self.song_nr = GAME_SONG_START + 3,
+                5 => self.song_nr = GAME_SONG_START + 4,
+                6 => self.song_nr = GAME_SONG_START + 5,
+                _ => self.song_nr = GAME_SONG_START + 6,
             }
         }
 

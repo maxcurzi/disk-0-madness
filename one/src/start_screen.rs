@@ -47,20 +47,37 @@ pub fn htp_screen(tick: usize) {
     text(" Avoid->", hoff, voff + 35);
     text("Absorb->", hoff, voff + 45);
     snake1.set_position(Coord {
-        x: hoff as f64 + 70.0,
+        x: hoff as f64 + 65.0,
         y: voff as f64 + 25.0,
     });
     snake1.draw();
 
-    let enemy = Enemy1::new(0, hoff as f64 + 71.0, voff as f64 + 36.0, COLOR1);
+    let enemy = Enemy1::new(0, hoff as f64 + 66.0, voff as f64 + 36.0, COLOR1);
     enemy.draw();
-    let enemy = Enemy1::new(0, hoff as f64 + 71.0, voff as f64 + 46.0, COLOR2);
+    let enemy = Enemy1::new(0, hoff as f64 + 66.0, voff as f64 + 46.0, COLOR2);
     enemy.draw();
 
     set_draw_color(0x12);
-    text("Move: Kbd/Mouse", hoff, voff + 55);
+    let X = "";
+    let Z = "";
+    let left = "";
+    let right = "";
+    let up = "";
+    let down = "";
+    // text(X.to_string(), 10, 10);
+    // text(Z.to_string(), 10, 20);
+    text(right, hoff + 60, voff + 55);
+    text(down, hoff + 51, voff + 55);
+    text(up, hoff + 42, voff + 55);
+    text(left, hoff + 33, voff + 55);
+    // text(" ", hoff+ 33, 20);
+
+    text("Move:", hoff, voff + 55);
+    text("/Mouse", hoff + 76, voff + 55);
     set_draw_color(0x12);
     text("Push X: -> ->", hoff, voff + 65);
+    // text(X, hoff + 32, voff + 65);
+    // text(" ", hoff + 32, voff + 65);
     snake1.set_position(Coord {
         x: hoff as f64 + 55.0,
         y: voff as f64 + 65.0,

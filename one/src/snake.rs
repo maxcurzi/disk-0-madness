@@ -45,7 +45,7 @@ impl Snake1 {
         s.0.position.x = (SCREEN_SIZE as f64 - s.0.size) / 2.0;
         s.0.position.y = (SCREEN_SIZE as f64 - s.0.size) / 2.0;
         s.0.direction.x = 1.0;
-        s.0.speed = 1.35;
+        s.0.speed = 1.45;
         s.0.color = COLOR2;
         s
     }
