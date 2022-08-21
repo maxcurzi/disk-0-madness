@@ -1,15 +1,17 @@
 # disk-0 MADNESS
 ![](assets/cover.png)
-![](assets/wasm4-animation.gif)
-![](assets/wasm4-animation-10.gif)
+![](assets/wasm4-animation-0.gif)
+![](assets/wasm4-screenshot-10.png)
 
-![](assets/wasm4-animation-7.gif)
-![](assets/wasm4-screenshot-1.png)
-![](assets/wasm4-screenshot-6.png)
+![](assets/wasm4-screenshot-9.png)
+![](assets/wasm4-screenshot-12.png)
+![](assets/wasm4-screenshot-14.png)
 
-![](assets/wasm4-screenshot-2.png)
+![](assets/wasm4-screenshot-13.png)
 ![](assets/htp.png)
-![](assets/htp-2.png)
+![](assets/wasm4-screenshot-15.png)
+
+
 
 A game written in Rust for the [WASM-4](https://wasm4.org) fantasy console.
 Pronounce it how you want: "Disco madness" / "Disk O' madness" / "Disk-Zero madness".
