@@ -598,7 +598,7 @@ impl Game {
             self.timers.song_tick = 0;
 
             // Save high score
-            let game_data: u32 = self.scores.current;
+            let game_data: u32 = self.scores.high;
             unsafe {
                 let game_data_bytes = game_data.to_le_bytes();
                 diskw(game_data_bytes.as_ptr(), core::mem::size_of::<u32>() as u32);
