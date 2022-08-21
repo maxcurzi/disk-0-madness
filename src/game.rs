@@ -195,11 +195,11 @@ struct Calibrations {
 }
 
 impl Calibrations {
-    fn new() -> Self {
+    fn new(tick_for_extra_rng: usize) -> Self {
         Self {
             difficulty: INIT_DIFFICULTY,
             score_next_life: NEXT_LIFE_SCORE,
-            rng: Rng::with_seed(RNG_SEED),
+            rng: Rng::with_seed(RNG_SEED + tick_for_extra_rng as u64),
             enemy_color: COLOR2,
         }
     }
@@ -340,6 +340,7 @@ enum ControlEvent {
     MouseMiddleClick,
 }
 impl Controls {
+    const MOUSE_AREA_PADDING: i16 = 20; // Extra space around play area to allow mouse events.
     fn new() -> Self {
         Self {
             prev_gamepad: unsafe { *GAMEPAD1 },
@@ -379,15 +380,21 @@ impl Controls {
         }
 
         // Check mouse
-        if mouse & MOUSE_RIGHT != 0 {
+        if mouse & MOUSE_RIGHT != 0
+            && self.mouse_in_play_area_within_padding(Self::MOUSE_AREA_PADDING)
+        {
             let mouse_x = unsafe { *MOUSE_X };
             let mouse_y = unsafe { *MOUSE_Y };
             event.push(ControlEvent::MouseRightHold((mouse_x, mouse_y)));
         }
-        if just_pressed_mouse & MOUSE_LEFT != 0 {
+        if just_pressed_mouse & MOUSE_LEFT != 0
+            && self.mouse_in_play_area_within_padding(Self::MOUSE_AREA_PADDING)
+        {
             event.push(ControlEvent::MouseLeftClick);
         }
-        if just_pressed_mouse & MOUSE_MIDDLE != 0 {
+        if just_pressed_mouse & MOUSE_MIDDLE != 0
+            && self.mouse_in_play_area_within_padding(Self::MOUSE_AREA_PADDING)
+        {
             event.push(ControlEvent::MouseMiddleClick);
         }
 
@@ -395,6 +402,30 @@ impl Controls {
         self.prev_mouse = mouse;
 
         event
+    }
+
+    fn mouse_in_play_area_within_padding(&self, padding: i16) -> bool {
+        // This restricts the mouse action area within the game area
+        // (with some padding outside).
+        //
+        // This is useful for multiple reasons:
+        // 1. Clicking on dev tools should not be registered as a game event, if
+        //    the dev tools area fall outside the play area
+        // 2. When playing on mobile all phone area counts as mouse area and
+        //    this makes it impossible to use the DPAD (because when the DPAD or
+        //    buttons are tapped, they are also detected as mouse events)
+        //
+        // The padding is useful to allow the player to use the mouse/fingers
+        // slightly outside the play area and still register inputs. It's
+        // frustrating to lose control of the disk and die if your mouse pointer
+        // was ever so slighty outside!
+
+        let mouse_x = unsafe { *MOUSE_X };
+        let mouse_y = unsafe { *MOUSE_Y };
+        mouse_x >= -padding
+            && mouse_x <= SCREEN_SIZE as i16 + padding
+            && mouse_y >= -padding
+            && mouse_y <= SCREEN_SIZE as i16 + padding
     }
 }
 
@@ -413,7 +444,7 @@ impl Game {
     pub fn new() -> Self {
         let entities = Entities::new();
         let timers = Timers::new();
-        let calibrations = Calibrations::new();
+        let calibrations = Calibrations::new(0);
         let scores = Scores::new();
         let flags = Flags::new();
         let environment = Environment::new(&calibrations.rng);
@@ -434,8 +465,9 @@ impl Game {
     /// again.
     pub fn restart(&mut self) {
         self.entities = Entities::new();
+        self.calibrations = Calibrations::new(self.timers.frame_count);
+        self.environment = Environment::new(&self.calibrations.rng);
         self.timers = Timers::new();
-        self.calibrations = Calibrations::new();
         self.scores = Scores::new();
         self.flags = Flags::new();
         self.flags.show_title = false;
@@ -490,15 +522,7 @@ impl Game {
                         let new_d_y = mouse_y as f64
                             - self.entities.player.get_position().y
                             - self.entities.player.get_size() as f64 / 2.0;
-                        if (new_d_x.abs() > 1.0 || new_d_y.abs() > 1.0)
-                        // To work on mobile (where the DPAD is on the screen) limit the
-                        // pointer interaction to just around the play area. Otherwise the
-                        // D-pad and button presses would be interpreted as directions
-                            && mouse_x >= -20
-                            && mouse_x <= SCREEN_SIZE as i16 + 20
-                            && mouse_y >= -20
-                            && mouse_y <= SCREEN_SIZE as i16 + 20
-                        {
+                        if (new_d_x.abs() > 1.0 || new_d_y.abs() > 1.0) {
                             self.entities.player.set_direction(Coord {
                                 x: new_d_x,
                                 y: new_d_y,
@@ -568,6 +592,7 @@ impl Game {
 
         // End-game. Player ran out of lives, save high score and flag for game-over
         if self.entities.player.get_life() == 0 {
+            self.flags.new_high_score = self.scores.current > self.scores.high;
             self.scores.high = max(self.scores.current, self.scores.high);
             self.flags.show_game_over = true;
             self.environment.song_nr = GAME_OVER_SONG as u8;
