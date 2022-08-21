@@ -12,9 +12,6 @@ source = "disk-0-madness.wasm"
 abi = "wasm4"
 interfaces = { wasm4 = "0.0.1" }
 
-[module.interfaces]
-wasm4 = "0.0.1"
-
 [[command]]
 name = "play"
 module = "game"
