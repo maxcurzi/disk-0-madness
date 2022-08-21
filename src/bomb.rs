@@ -44,7 +44,7 @@ impl Bomb {
         self.0.life
     }
 
-    pub fn id(&self) -> usize {
+    pub fn _id(&self) -> usize {
         self.0.id
     }
 

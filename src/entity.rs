@@ -1,4 +1,4 @@
-use crate::palette::{set_draw_color, COLOR_BOMB};
+use crate::palette::set_draw_color;
 use crate::wasm4::{oval, SCREEN_SIZE};
 use std::f64::EPSILON;
 use std::ops::{Add, Sub};

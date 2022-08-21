@@ -2,7 +2,6 @@ use std::f64::EPSILON;
 
 use crate::entity::{Coord, Entity, Movable, Visible};
 use crate::player::Player;
-use crate::wasm4::trace;
 
 pub struct Enemy(Entity);
 impl Movable for Enemy {

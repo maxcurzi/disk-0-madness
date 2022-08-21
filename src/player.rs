@@ -27,13 +27,16 @@ impl Visible for Player {
 }
 
 impl Player {
+    const DEFAULT_SIZE: f64 = 7.0;
+    const DEFAULT_SPEED: f64 = 1.40;
+
     pub fn new() -> Self {
         let mut s = Player(Entity::new());
-        s.0.size = 7.0;
+        s.0.size = Self::DEFAULT_SIZE;
         s.0.position.x = (SCREEN_SIZE as f64 - s.0.size) / 2.0; // Start centered
         s.0.position.y = (SCREEN_SIZE as f64 - s.0.size) / 2.0; // Start centered
         s.0.direction.x = 1.0;
-        s.0.speed = 1.40;
+        s.0.speed = Self::DEFAULT_SPEED;
         s.0.color = COLOR2;
         s
     }

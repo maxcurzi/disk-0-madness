@@ -26,7 +26,7 @@ pub fn death_sound() {
 
 pub fn extra_life_sound() {
     tone(
-        0 | (6000 << 16),
+        6000 << 16,
         1 | (3 << 8) | (8 << 16) | (3 << 24),
         100 | (100 << 8),
         TONE_PULSE1 | TONE_MODE1,
@@ -36,8 +36,8 @@ pub fn extra_life_sound() {
 pub fn color1_sound() {
     tone(
         340,
-        1 | (3 << 8) | (8 << 16) | (0 << 24),
-        0 | (24 << 8),
+        1 | (3 << 8) | (8 << 16),
+        24 << 8,
         TONE_TRIANGLE | TONE_MODE1,
     );
 }
@@ -45,7 +45,7 @@ pub fn color2_sound() {
     tone(
         360,
         1 | (3 << 8) | (8 << 16) | (3 << 24),
-        0 | (24 << 8),
+        24 << 8,
         TONE_TRIANGLE | TONE_MODE1,
     );
 }

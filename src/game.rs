@@ -67,7 +67,7 @@ impl Entities {
             enemy.follow(&self.player);
             enemy.update_position();
         }
-        for (id, bomb) in self.bombs.iter_mut() {
+        for (_, bomb) in self.bombs.iter_mut() {
             if bomb.1 {
                 bomb.0.grow();
             }
@@ -77,9 +77,9 @@ impl Entities {
 
     fn prune(&mut self) {
         let mut enemies_to_delete: Vec<usize> = vec![];
-        for (_, enemy) in self.enemies.iter_mut() {
+        for (&id, enemy) in self.enemies.iter_mut() {
             if enemy.life() == 0 {
-                enemies_to_delete.push(enemy.id());
+                enemies_to_delete.push(id);
             }
         }
         for td in enemies_to_delete {
@@ -87,9 +87,9 @@ impl Entities {
         }
 
         let mut bombs_to_delete: Vec<usize> = vec![];
-        for (id, bomb) in self.bombs.iter_mut() {
+        for (&id, bomb) in self.bombs.iter_mut() {
             if bomb.0.life() == 0 {
-                bombs_to_delete.push(*id);
+                bombs_to_delete.push(id);
             }
         }
         for td in bombs_to_delete {
