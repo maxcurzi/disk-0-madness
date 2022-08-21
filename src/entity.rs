@@ -111,11 +111,6 @@ impl Visible for Entity {
         let dy = y1_center - y2_center;
         let distance = (dx * dx + dy * dy).sqrt();
 
-        let mut tolerance = 0.0;
-        // if other.color != self.color{
-        //     // Makes it easy to sneak past enemies for satisfying escapes
-        //     tolerance = -2.0;
-        // }
-        distance < radius1 + radius2 + tolerance
+        distance < radius1 + radius2
     }
 }

@@ -404,22 +404,21 @@ impl Controls {
         event
     }
 
+    /// This restricts the mouse action area within the game area
+    /// (with some padding outside).
+    ///
+    /// This is useful for multiple reasons:
+    /// 1. Clicking on dev tools should not be registered as a game event, if
+    ///    the dev tools area fall outside the play area
+    /// 2. When playing on mobile all phone area counts as mouse area and
+    ///    this makes it impossible to use the DPAD (because when the DPAD or
+    ///    buttons are tapped, they are also detected as mouse events)
+    ///
+    /// The padding is useful to allow the player to use the mouse/fingers
+    /// slightly outside the play area and still register inputs. It's
+    /// frustrating to lose control of the disk and die if your mouse pointer
+    /// was ever so slighty outside!
     fn mouse_in_play_area_within_padding(&self, padding: i16) -> bool {
-        // This restricts the mouse action area within the game area
-        // (with some padding outside).
-        //
-        // This is useful for multiple reasons:
-        // 1. Clicking on dev tools should not be registered as a game event, if
-        //    the dev tools area fall outside the play area
-        // 2. When playing on mobile all phone area counts as mouse area and
-        //    this makes it impossible to use the DPAD (because when the DPAD or
-        //    buttons are tapped, they are also detected as mouse events)
-        //
-        // The padding is useful to allow the player to use the mouse/fingers
-        // slightly outside the play area and still register inputs. It's
-        // frustrating to lose control of the disk and die if your mouse pointer
-        // was ever so slighty outside!
-
         let mouse_x = unsafe { *MOUSE_X };
         let mouse_y = unsafe { *MOUSE_Y };
         mouse_x >= -padding
@@ -462,7 +461,7 @@ impl Game {
     }
 
     /// A game restarts when the player runs out of lives and decides to play
-    /// again.
+    /// again. Use a new random seed for the rng, to keep the universe fresh.
     pub fn restart(&mut self) {
         self.entities = Entities::new();
         self.calibrations = Calibrations::new(self.timers.frame_count);
@@ -522,7 +521,7 @@ impl Game {
                         let new_d_y = mouse_y as f64
                             - self.entities.player.get_position().y
                             - self.entities.player.get_size() as f64 / 2.0;
-                        if (new_d_x.abs() > 1.0 || new_d_y.abs() > 1.0) {
+                        if new_d_x.abs() > 1.0 || new_d_y.abs() > 1.0 {
                             self.entities.player.set_direction(Coord {
                                 x: new_d_x,
                                 y: new_d_y,
@@ -581,8 +580,6 @@ impl Game {
             return;
         }
 
-        self.entities.draw();
-
         // Stop-the-world death event
         if self.entities.killer.is_some() {
             self.death_tick();
@@ -608,21 +605,10 @@ impl Game {
             return;
         }
 
-        // Set difficulty. It simply depends on the current multiplier.
-        for (i, mul) in DIFF_MUL_PROGRESSION.iter().enumerate() {
-            if self.scores.multiplier < *mul {
-                self.calibrations.difficulty = max(i as u32, self.calibrations.difficulty);
-                break;
-            }
-        }
-
-        self.spawn_enemies();
-
-        self.spawn_bombs();
-
+        self.update_difficulty();
         let (enemies_killed, bombs_exploded) = self.entities.update();
 
-        self.scores.update(enemies_killed, bombs_exploded);
+        self.update_score(enemies_killed, bombs_exploded);
 
         if self.entities.killer.is_some() {
             self.entities
@@ -630,20 +616,37 @@ impl Game {
                 .set_life(self.entities.player.get_life().saturating_sub(1));
         }
 
-        if self.scores.current > self.calibrations.score_next_life {
-            self.entities
-                .player
-                .set_life(self.entities.player.get_life().saturating_add(1));
-            self.calibrations.score_next_life = self.calibrations.score_next_life.saturating_mul(2);
-        }
+        self.spawn_enemies();
+        self.spawn_bombs();
+        self.entities.draw();
 
+        self.sounds_and_music_tick(bombs_exploded);
+
+        // Print Statistics
+        #[cfg(debug_assertions)]
+        self.print_statistics();
+
+        self.timers.tick();
+    }
+
+    fn print_statistics(&mut self) {
+        if self.timers.frame_count % 60 == 0 {
+            trace(
+                "Enemies:".to_owned()
+                    + self.entities.enemies.len().to_string().as_str()
+                    + "/"
+                    + self.entities.enemies.capacity().to_string().as_str(),
+            );
+        }
+    }
+
+    fn sounds_and_music_tick(&mut self, bombs_exploded: u32) {
         // Play relevant sounds
         self.environment.play_sound_effects(
             bombs_exploded > 0,
             self.scores.current > self.calibrations.score_next_life,
             self.entities.killer.is_some(),
         );
-
         // Update music appropriately with difficulty level
         if ((self.timers.frame_count + 1) / MUSIC_SPEED_CTRL) % VOICE_NOTES == 0 {
             match self.calibrations.difficulty {
@@ -656,19 +659,26 @@ impl Game {
                 _ => self.environment.song_nr = GAME_SONG_START + 6,
             }
         }
+    }
 
-        // Print Statistics
-        #[cfg(debug_assertions)]
-        if self.timers.frame_count % 60 == 0 {
-            trace(
-                "Enemies:".to_owned()
-                    + self.entities.enemies.len().to_string().as_str()
-                    + "/"
-                    + self.entities.enemies.capacity().to_string().as_str(),
-            );
+    fn update_score(&mut self, enemies_killed: u32, bombs_exploded: u32) {
+        self.scores.update(enemies_killed, bombs_exploded);
+        if self.scores.current > self.calibrations.score_next_life {
+            self.entities
+                .player
+                .set_life(self.entities.player.get_life().saturating_add(1));
+            self.calibrations.score_next_life = self.calibrations.score_next_life.saturating_mul(2);
         }
+    }
 
-        self.timers.tick();
+    fn update_difficulty(&mut self) {
+        // Set difficulty. It simply depends on the current multiplier.
+        for (i, mul) in DIFF_MUL_PROGRESSION.iter().enumerate() {
+            if self.scores.multiplier < *mul {
+                self.calibrations.difficulty = max(i as u32, self.calibrations.difficulty);
+                break;
+            }
+        }
     }
 
     fn spawn_bombs(&mut self) {
@@ -735,13 +745,13 @@ impl Game {
     fn draw_hud(&self) {
         // Draws score, high-score, multiplier, player life count
         palette::set_draw_color(0x12);
+        text(self.scores.current.to_string(), 1, 1);
         if self.flags.new_high_score
             && self.flags.show_game_over
-            && (self.timers.frame_count / 5) % 10 < 4
+            && (self.timers.frame_count / 2) % 10 < 5
         {
             palette::set_draw_color(0x00);
         }
-        text(self.scores.current.to_string(), 1, 1);
         text(
             "H:".to_string() + self.scores.high.to_string().as_str(),
             73,

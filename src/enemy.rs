@@ -2,6 +2,7 @@ use std::f64::EPSILON;
 
 use crate::entity::{Coord, Entity, Movable, Visible};
 use crate::player::Player;
+use crate::wasm4::trace;
 
 pub struct Enemy(Entity);
 impl Movable for Enemy {
@@ -12,6 +13,18 @@ impl Movable for Enemy {
 }
 
 impl Enemy {
+    // Enemies souldn't live forever. This is to avoid that very skilled players
+    // may be able to kite all enemies in a single bubble and prevent further
+    // enemies to respawn once the max number of enemies are on screen.
+    const DEFAULT_LIFE_SPAN: u32 = 10 * 60;
+
+    // Grant immunity to player if the enemy just spawned. It avoid frustration
+    // of dying when enemies spawn just as you glide by the edges.
+    const I_FRAMES_ON_SPAWN: u32 = 12;
+
+    const DEFAULT_SPEED: f64 = 0.7;
+    const DEFAULT_SIZE: f64 = 5.0;
+
     pub fn follow(&mut self, player: &Player) {
         // Standard pure pursuit
         let new_dir_x = player.get_position().x + (player.get_size() as f64 / 2.0)
@@ -34,14 +47,14 @@ impl Enemy {
 
     pub fn new(id: usize, x: f64, y: f64, color: u16) -> Self {
         let mut e = Enemy(Entity::new());
-        e.0.size = 4.0;
+        e.0.size = Self::DEFAULT_SIZE;
         e.0.position.x = x;
         e.0.position.y = y;
         e.0.direction.x = 0.0;
-        e.0.speed = 0.7;
+        e.0.speed = Self::DEFAULT_SPEED;
         e.0.id = id;
         e.0.color = color;
-        e.0.life = 10 * 60; // n seconds at 60 FPS
+        e.0.life = Self::DEFAULT_LIFE_SPAN; // n seconds at 60 FPS
         e
     }
     pub fn id(&self) -> usize {
@@ -66,13 +79,16 @@ impl Enemy {
         self.0.color
     }
     pub fn collided_with(&self, player: &Player) -> bool {
-        let mut extra_reach: f64 = 0.0;
-
-        if player.get_color() != self.get_color() {
-            extra_reach = -2.0; // Reduce player size to allow satisfying escapes
-        } else {
-            extra_reach = 1.0; // Increase player size to make easy to absorbe
+        if self.0.life > (Self::DEFAULT_LIFE_SPAN - Self::I_FRAMES_ON_SPAWN)
+            && player.get_color() != self.get_color()
+        {
+            return false;
         }
+        let extra_reach: f64 = if player.get_color() != self.get_color() {
+            -2.5 // Reduce player size to allow satisfying escapes
+        } else {
+            0.5 // Increase player size to make easy to absorbe
+        };
 
         let other: Entity = Entity {
             position: Coord {
