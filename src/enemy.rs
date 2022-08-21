@@ -3,6 +3,14 @@ use std::f64::EPSILON;
 use crate::entity::{Coord, Entity, Movable, Visible};
 use crate::player::Player;
 
+const ENEMY_SIZE: f64 = 4.0;
+const ENEMY_SPEED: f64 = 0.7;
+const ENEMY_LIFE: u32 = 12 * 60; // n seconds at 60 FPS
+
+// Rate limit turns to make enemies slightly slower to
+// follow sharp turns for more satisfying escapes
+const TURN_RATE_LIMIT: f64 = 0.09;
+
 pub struct Enemy(Entity);
 impl Movable for Enemy {
     fn update_position(&mut self) {
@@ -13,11 +21,15 @@ impl Movable for Enemy {
 
 impl Enemy {
     pub fn follow(&mut self, player: &Player) {
-        // Standard pure pursuit
-        let new_dir_x = player.get_position().x + (player.get_size() as f64 / 2.0)
-            - (self.0.position.x + self.0.size as f64 / 2.0);
-        let new_dir_y = player.get_position().y + (player.get_size() as f64 / 2.0)
-            - (self.0.position.y + self.0.size as f64 / 2.0);
+        // Standard pure pursuit logic
+        let player_center_x = player.get_position().x + (player.get_size() as f64 / 2.0);
+        let player_center_y = player.get_position().y + (player.get_size() as f64 / 2.0);
+        let self_center_x = self.0.position.x + self.0.size as f64 / 2.0;
+        let self_center_y = self.0.position.x + self.0.size as f64 / 2.0;
+        let new_dir_x = player_center_x - self_center_x;
+        let new_dir_y = player_center_y - self_center_y;
+
+        // Limit turn rate
         let ddx = self.0.direction.x - new_dir_x;
         let ddy = self.0.direction.y - new_dir_y;
         let norm = (ddx * ddx + ddy * ddy).sqrt();
@@ -25,29 +37,29 @@ impl Enemy {
             return;
         }
 
-        // Rate limit turns to make enemies slightly slower to follow sharp turns for more satisfying scapes
-        let ddx_norm = (self.0.direction.x - new_dir_x / norm).clamp(-0.09, 0.09);
-        let ddy_norm = (self.0.direction.y - new_dir_y / norm).clamp(-0.09, 0.09);
+        let ddx_norm =
+            (self.0.direction.x - new_dir_x / norm).clamp(-TURN_RATE_LIMIT, TURN_RATE_LIMIT);
+        let ddy_norm =
+            (self.0.direction.y - new_dir_y / norm).clamp(-TURN_RATE_LIMIT, TURN_RATE_LIMIT);
         self.0.direction.x -= ddx_norm;
         self.0.direction.y -= ddy_norm;
     }
 
     pub fn new(id: usize, x: f64, y: f64, color: u16) -> Self {
         let mut e = Enemy(Entity::new());
-        e.0.size = 4.0;
-        e.0.position.x = x;
-        e.0.position.y = y;
-        e.0.direction.x = 0.0;
-        e.0.speed = 0.7;
+        e.0.size = ENEMY_SIZE;
+        e.0.position = Coord { x, y };
+        e.0.direction = Coord { x: 0.0, y: 0.0 };
+        e.0.speed = ENEMY_SPEED;
         e.0.id = id;
         e.0.color = color;
-        e.0.life = 10 * 60; // n seconds at 60 FPS
+        e.0.life = ENEMY_LIFE;
         e
     }
     pub fn id(&self) -> usize {
         self.0.id
     }
-    pub fn life(&self) -> i32 {
+    pub fn life(&self) -> u32 {
         self.0.life
     }
     pub fn get_position(&self) -> Coord {
@@ -66,13 +78,11 @@ impl Enemy {
         self.0.color
     }
     pub fn collided_with(&self, player: &Player) -> bool {
-        let mut extra_reach: f64 = 0.0;
-
-        if player.get_color() != self.get_color() {
-            extra_reach = -2.0; // Reduce player size to allow satisfying escapes
+        let extra_reach: f64 = if player.get_color() != self.get_color() {
+            -2.0 // Reduce player size to allow satisfying escapes
         } else {
-            extra_reach = 1.0; // Increase player size to make easy to absorbe
-        }
+            1.0 // Increase player size to make easy to absorbe
+        };
 
         let other: Entity = Entity {
             position: Coord {

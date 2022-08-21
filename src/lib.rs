@@ -14,7 +14,7 @@ use std::sync::Mutex;
 mod intro_screen;
 mod music;
 mod notes;
-mod start_screen;
+mod screen;
 mod title_image;
 
 lazy_static! {

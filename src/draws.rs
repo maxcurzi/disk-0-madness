@@ -1,8 +1,8 @@
-use crate::wasm4::{DRAW_COLORS, FRAMEBUFFER};
+use crate::wasm4::{DRAW_COLORS, FRAMEBUFFER, SCREEN_SIZE};
 
 pub fn pixel(x: i32, y: i32) {
     // The byte index into the framebuffer that contains (x, y)
-    let idx = (y as usize * 160 + x as usize) >> 2;
+    let idx = ((y * SCREEN_SIZE as i32 + x) as usize) >> 2;
 
     // Calculate the bits within the byte that corresponds to our position
     let shift = (x as u8 & 0b11) << 1;

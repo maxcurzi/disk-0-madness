@@ -38,7 +38,7 @@ pub struct Entity {
     pub speed: f64,
     pub id: usize,
     pub color: u16,
-    pub life: i32,
+    pub life: u32,
 }
 impl Entity {
     pub fn new() -> Self {

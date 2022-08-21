@@ -9,14 +9,20 @@ use crate::{
     wasm4::{blit, rect, text, DRAW_COLORS, SCREEN_SIZE},
 };
 
+#[allow(clippy::invalid_utf8_in_unchecked)]
 const X_ICON: &str = unsafe { std::str::from_utf8_unchecked(&[0x80]) };
+#[allow(clippy::invalid_utf8_in_unchecked)]
 const Z_ICON: &str = unsafe { std::str::from_utf8_unchecked(&[0x81]) };
+#[allow(clippy::invalid_utf8_in_unchecked)]
 const LEFT_ICON: &str = unsafe { std::str::from_utf8_unchecked(&[0x84]) };
+#[allow(clippy::invalid_utf8_in_unchecked)]
 const RIGHT_ICON: &str = unsafe { std::str::from_utf8_unchecked(&[0x85]) };
+#[allow(clippy::invalid_utf8_in_unchecked)]
 const UP_ICON: &str = unsafe { std::str::from_utf8_unchecked(&[0x86]) };
+#[allow(clippy::invalid_utf8_in_unchecked)]
 const DOWN_ICON: &str = unsafe { std::str::from_utf8_unchecked(&[0x87]) };
 
-pub fn title_screen(tick: usize) {
+pub fn title(tick: usize) {
     unsafe { *DRAW_COLORS = 0x1234 };
     blit(
         &INTRO_SCREEN,
@@ -38,7 +44,7 @@ pub fn title_screen(tick: usize) {
     set_draw_color(0x02);
 }
 
-pub fn htp_screen(tick: usize) {
+pub fn how_to_play(tick: usize) {
     let voff = 5;
     let hoff = 20;
 
@@ -102,7 +108,9 @@ pub fn htp_screen(tick: usize) {
 
     set_draw_color(0x23);
     rect(hoff - 10, voff + 122, SCREEN_SIZE - 20, 13);
-    if (tick / 5) % 10 < 4 {
+
+    // Syncs blink with intro song beat
+    if (tick / 4) % 10 < 4 {
         set_draw_color(0x00);
     } else {
         set_draw_color(0x04);
@@ -116,15 +124,15 @@ pub fn htp_screen(tick: usize) {
     text(Z_ICON.to_owned() + ":palette", hoff + 66, voff + 145);
 }
 
-pub fn game_over_screen(tick: usize) {
+pub fn game_over(tick: usize) {
     set_draw_color(0x14);
     text(
         "GAME OVER",
         SCREEN_SIZE as i32 / 2 - 35,
         SCREEN_SIZE as i32 / 2 - 10,
     );
-    if (tick / 5) % 10 < 4 {
-        set_draw_color(0x00);
+    if (tick / 2) % 10 < 5 {
+        set_draw_color(0x10);
     }
     text(
         "Press ".to_owned() + X_ICON + " to restart",

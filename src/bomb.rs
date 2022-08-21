@@ -40,7 +40,7 @@ impl Bomb {
         self.0.draw();
     }
 
-    pub fn life(&self) -> i32 {
+    pub fn life(&self) -> u32 {
         self.0.life
     }
 

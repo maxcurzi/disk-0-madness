@@ -1,6 +1,7 @@
+use crate::draws::pixel;
 use crate::entity::{Coord, Entity, Movable, Visible};
-use crate::palette::{COLOR1, COLOR2, HEART};
-use crate::wasm4::{blit, BLIT_1BPP, SCREEN_SIZE};
+use crate::palette::{self, COLOR1, COLOR2};
+use crate::wasm4::SCREEN_SIZE;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Player(Entity);
@@ -14,6 +15,11 @@ impl Movable for Player {
 impl Visible for Player {
     fn draw(&self) {
         self.0.draw();
+        palette::set_draw_color(0x33);
+        pixel(
+            self.get_position().x as i32 + (self.0.size / 2.0) as i32,
+            self.get_position().y as i32 + (self.0.size / 2.0) as i32,
+        );
     }
     fn collided_with(&self, other: &Entity) -> bool {
         self.0.collided_with(other)
@@ -69,10 +75,10 @@ impl Player {
     pub fn get_size(&self) -> f64 {
         self.0.size
     }
-    pub fn get_life(&self) -> i32 {
+    pub fn get_life(&self) -> u32 {
         self.0.life
     }
-    pub fn set_life(&mut self, life: i32) {
+    pub fn set_life(&mut self, life: u32) {
         self.0.life = life;
     }
 

@@ -1,9 +1,9 @@
 [package]
 name = "maxcurzi/disk0-MADNESS"
 version = "1.0.0"
-description = "Dodge and absorb enemies. Change color to your advantage in this addictive retro bullet hell."
+description = "Dodge and absorb enemies. Change color to your advantage in this addictive retro bullet hell. Controls [Mouse]: Move with mouse + hold down right button. Change your color with the left button. Controls [Keyboard]: Move with arrows. Change color with X. Change game color palette with Z or mouse middle button."
 license = "ISC"
-repository = "https://github.com/maxcurzi"
+repository = "https://github.com/maxcurzi/disk-0-madness"
 
 [[module]]
 name = "game"

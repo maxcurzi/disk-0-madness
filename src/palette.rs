@@ -19,10 +19,11 @@ pub fn set_palette_n(palette_n: usize) {
 pub const PALETTES: [[u32; 4]; 10] = [
     [0x120136, 0x035AA6, 0x40BAD5, 0xFCBF1E],
     [0x100720, 0x31087B, 0xFA2FB5, 0xFFC23C],
-    [0xfff6d3, 0xf9a875, 0xeb6b6f, 0x7c3f58],
 
     // https://lospec.com/palette-list/kirokaze-gameboy
     [0x332c50, 0x46878f, 0x94e344, 0xe2f3e4],
+
+    [0xfff6d3, 0xf9a875, 0xeb6b6f, 0x7c3f58],
 
     // https://lospec.com/palette-list/red-blood-pain
     [0x7e1f23, 0xc4181f, 0x120a19, 0x5e4069],

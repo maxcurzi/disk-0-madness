@@ -8,7 +8,6 @@ use crate::{
 };
 
 pub fn bomb_sound() {
-    // bomb explosion sound
     tone(
         380 | (10 << 16),
         10 | (10 << 16),
@@ -17,7 +16,6 @@ pub fn bomb_sound() {
     );
 }
 pub fn death_sound() {
-    // player death sound
     tone(
         140 | (110 << 16),
         3 | (6 << 16),
@@ -52,13 +50,9 @@ pub fn color2_sound() {
     );
 }
 
-pub fn music_player(ext_counter: usize, song_n: u8) {
-    song_player(&ext_counter, song_n);
-}
-
 pub const VOICE_NOTES: usize = 64;
 
-fn voice_player(counter: &usize, voice: Voice, duration: Duration, volume: Volume, flags: Flags) {
+fn voice_player(counter: usize, voice: Voice, duration: Duration, volume: Volume, flags: Flags) {
     let idx = counter % VOICE_NOTES;
     let note = voice[idx];
     if note != XX {
@@ -66,24 +60,25 @@ fn voice_player(counter: &usize, voice: Voice, duration: Duration, volume: Volum
     }
 }
 
-pub fn song_player(counter: &usize, song_n: u8) {
+pub fn play_music(counter: usize, song_n: u8) {
     let song = SONGS[song_n as usize];
     for voice in song.iter().flatten() {
         voice_player(counter, voice.0, voice.1, voice.2, voice.3);
     }
 }
 
-// Music is as follows:
+// Music is structured as follows:
 // - A Song contains up to 4 tracks (PULSE1, PULSE2, TRIANGLE, NOISE).
 //
 // - Tracks: Each track is a combination of a Voice (sequence of notes) and
-// their corresponding volume/duration/flags.
-// Duration, Volume, and flags are applied uniformly within each voice
-// (this doesn't allow much variety, but I can make it work).
+// their corresponding volume/duration/flags. Duration, Volume, and flags are
+// applied uniformly within each voice (this doesn't allow much variety, but I
+// can make it work).
 //
-// - Voice: Each Voice has EXACTLY 64 notes (16 bars). Wastes space if
-// the track is mostly empty, but keeping index:note can be just as wasteful.
-//
+// - Voice: Each Voice has EXACTLY 64 notes (16 bars). Wastes space if the track
+// is mostly empty, but keeping index:note can be just as wasteful. Its
+// structure makes it easy to read and edit notes from this file in combination
+// with BeepBox website.
 
 type Note = u16;
 type Voice = [Note; VOICE_NOTES];
@@ -151,7 +146,7 @@ const SONG2: Song = [
     Some((T_2_2, 8, 100, TONE_TRIANGLE | TONE_MODE4)),
     Some((T_2_2, 8, 40, TONE_PULSE1 | TONE_MODE1)),
     None, //Some((T_2_0, 10, 60 | (10 << 8), TONE_TRIANGLE | TONE_MODE1)),
-    Some((T_3_0b, 1 | (10 << 8), 40, TONE_NOISE | TONE_MODE3)),
+    Some((T_3_0B, 1 | (10 << 8), 40, TONE_NOISE | TONE_MODE3)),
 ];
 // const SONG1_5: Song = [
 //     Some((T_4_0, 1 | (1 << 10), 50, TONE_TRIANGLE | TONE_MODE4)),
@@ -695,7 +690,7 @@ A2, XX, XX, XX,
 ];
 
 #[rustfmt::skip]
-const T_3_0b: Voice = [
+const T_3_0B: Voice = [
 
 // Bar 1
 XX, XX, XX, XX,
