@@ -2,7 +2,7 @@ use std::cmp::max;
 use std::collections::HashMap;
 
 use crate::bomb::Bomb;
-use crate::draws::{self};
+use crate::draws;
 use crate::enemy::Enemy;
 use crate::entity::{Coord, Movable, Visible};
 use crate::music::{self, GAME_OVER_SONG, GAME_SONG_START, INTRO_SONG, VOICE_NOTES};
@@ -10,7 +10,7 @@ use crate::palette::{self, COLOR1, COLOR2, HEART};
 use crate::player::Player;
 use crate::screen;
 use crate::wasm4::{
-    blit, diskr, diskw, text, trace, BLIT_1BPP, BUTTON_1, BUTTON_2, BUTTON_DOWN, BUTTON_LEFT,
+    blit, diskr, diskw, text, BLIT_1BPP, BUTTON_1, BUTTON_2, BUTTON_DOWN, BUTTON_LEFT,
     BUTTON_RIGHT, BUTTON_UP, GAMEPAD1, MOUSE_BUTTONS, MOUSE_LEFT, MOUSE_MIDDLE, MOUSE_RIGHT,
     MOUSE_X, MOUSE_Y, SCREEN_SIZE,
 };
@@ -98,6 +98,8 @@ impl Entities {
     }
 
     fn draw(&self) {
+        // Draw player before the enemies so in case of overlap it looks more
+        // "squishy" when escaping. Bombs should cover enemies so are drawn last.
         self.player.draw();
 
         for enemy in self.enemies.values() {
@@ -629,9 +631,12 @@ impl Game {
         self.timers.tick();
     }
 
+    #[cfg(debug_assertions)]
     fn print_statistics(&mut self) {
+        use crate::wasm4;
+
         if self.timers.frame_count % 60 == 0 {
-            trace(
+            wasm4::trace(
                 "Enemies:".to_owned()
                     + self.entities.enemies.len().to_string().as_str()
                     + "/"
