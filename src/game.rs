@@ -1,3 +1,4 @@
+use std::borrow::BorrowMut;
 use std::cmp::max;
 use std::collections::HashMap;
 
@@ -21,7 +22,7 @@ const MAX_ENEMIES: usize = 200;
 const MAX_BOMBS: usize = 16;
 const INIT_LIVES: usize = 3;
 const INIT_DIFFICULTY: u32 = 0;
-const BOMB_FRAME_FREQ: usize = 400;
+const BOMB_FRAME_FREQ: usize = 300;
 const MUSIC_SPEED_CTRL: usize = 5;
 const DIFFICULTY_LEVELS: usize = 10;
 const NEXT_LIFE_SCORE: u32 = 100_000;
@@ -33,7 +34,7 @@ const ENEMY_FRAME: [usize; DIFFICULTY_LEVELS] = [120, 60, 30, 25, 15, 10, 8, 6, 
 const EN_COL_FRAME: [usize; DIFFICULTY_LEVELS] = [240, 180, 160, 120, 100, 80, 60, 60, 60, 60];
 // Score to difficulty
 const DIFF_MUL_PROGRESSION: [u32; DIFFICULTY_LEVELS - 1] =
-    [12, 30, 80, 120, 240, 320, 500, 1000, 2000];
+    [12, 30, 80, 120, 240, 320, 450, 1000, 2000];
 
 /// Entities include the player, enemies and bombs
 struct Entities {
@@ -116,37 +117,52 @@ impl Entities {
         let mut enemies_killed = 0;
         let mut bombs_exploded = 0;
 
-        'outer: for (_, enemy) in self.enemies.iter_mut() {
-            for boxed in self.bombs.values() {
-                if boxed.1 && boxed.0.collided_with_enemy(enemy) {
-                    enemy.set_color(self.player.get_color())
-                }
-            }
-            if enemy.collided_with(&self.player) {
-                if enemy.get_color() == self.player.get_color() {
-                    // Player eats enemy
-                    enemy.kill();
-                    enemies_killed += 1;
-                } else {
-                    // Player dies
-                    self.killer = Some(Enemy::new(
-                        enemy.id(),
-                        enemy.get_position().x,
-                        enemy.get_position().y,
-                        enemy.get_color(),
-                    ));
-                    enemy.kill();
-                    break 'outer;
-                }
+        // Player-Bomb collision
+        for (_id, boxed_bomb) in self.bombs.iter_mut() {
+            let bomb = boxed_bomb.0.to_owned();
+            let exploded = boxed_bomb.1.borrow_mut();
+            if bomb.get_super().collided_with(&self.player, 2.0) && !*exploded {
+                bombs_exploded += 1;
+                *exploded = true;
             }
         }
 
-        for (_, boxed) in self.bombs.iter_mut() {
-            if boxed.0.collided_with_player(&self.player) && !boxed.1 {
-                bombs_exploded += 1;
-                boxed.1 = true;
+        'outer: for (_id, enemy) in self.enemies.iter_mut() {
+            // Bomb-Enemy collision
+            for boxed_bomb in self.bombs.values() {
+                let bomb = boxed_bomb.0.to_owned();
+                let exploded = boxed_bomb.1.to_owned();
+                let extra_reach = 2.0; // Makes enemies easier to convert
+                if exploded && bomb.get_super().collided_with(enemy.as_ref(), extra_reach) {
+                    enemy.set_color(self.player.get_color())
+                }
+            }
+
+            // Enemy-Player collision (same color)
+            if enemy.get_color() == self.player.get_color()
+                && enemy.get_super().collided_with(&self.player, 2.0)
+            {
+                enemy.kill();
+                enemies_killed += 1;
+            }
+
+            // Enemy-Player collision (different colors)
+            if enemy.get_color() != self.player.get_color()
+                && !enemy.just_spawned()
+                && enemy.get_super().collided_with(&self.player, -2.0)
+            {
+                // Player dies
+                self.killer = Some(Enemy::new(
+                    enemy.id(),
+                    enemy.get_position().x,
+                    enemy.get_position().y,
+                    enemy.get_color(),
+                ));
+                enemy.kill();
+                break 'outer;
             }
         }
+
         self.prune();
 
         (enemies_killed, bombs_exploded)
@@ -707,10 +723,10 @@ impl Game {
         if self.timers.frame_count % EN_COL_FRAME[self.calibrations.difficulty as usize] as usize
             == 0
         {
-            if self.calibrations.enemy_color == COLOR2 {
-                self.calibrations.enemy_color = COLOR1;
+            self.calibrations.enemy_color = if self.calibrations.enemy_color == COLOR2 {
+                COLOR1
             } else {
-                self.calibrations.enemy_color = COLOR2;
+                COLOR2
             }
         }
         // We only spawn a maximum of 1 enemy per frame, at an interval decided

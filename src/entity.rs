@@ -1,13 +1,42 @@
 use crate::palette::set_draw_color;
 use crate::wasm4::{oval, SCREEN_SIZE};
-use std::f64::EPSILON;
-use std::ops::{Add, Sub};
+use std::ops::{Add, AddAssign, Mul, Sub};
 
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 pub struct Coord {
     pub x: f64,
     pub y: f64,
 }
+
+impl Coord {
+    /// Absolute distance between two points
+    pub fn distance_to(self, other: &Self) -> f64 {
+        let d_vect = self - *other;
+        (d_vect.x.powi(2) + d_vect.y.powi(2)).sqrt()
+    }
+
+    /// Norm (length) of Coord vector
+    pub fn norm(self) -> f64 {
+        (self.x.powi(2) + self.y.powi(2)).sqrt()
+    }
+
+    /// Scale Coordinate by a simple multiplication factor
+    pub fn scale(self, scale: f64) -> Coord {
+        Self {
+            x: self.x * scale,
+            y: self.y * scale,
+        }
+    }
+
+    /// Clamps all coordinates between two values (x-y independent)
+    pub fn clamp(self, min_x: f64, max_x: f64, min_y: f64, max_y: f64) -> Coord {
+        Self {
+            x: self.x.clamp(min_x, max_x),
+            y: self.y.clamp(min_y, max_y),
+        }
+    }
+}
+
 impl Add for Coord {
     type Output = Self;
 
@@ -16,6 +45,15 @@ impl Add for Coord {
             x: self.x + other.x,
             y: self.y + other.y,
         }
+    }
+}
+
+impl AddAssign for Coord {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = Self {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+        };
     }
 }
 
@@ -52,7 +90,28 @@ impl Entity {
             life: 0,
         }
     }
+    pub fn collided_with(&self, other: &impl Visible, extra_reach: f64) -> bool {
+        //Circular bounding box collision
+        let radius1 = other.get_size() / 2.0 - 0.5;
+        let radius2 = self.get_size() / 2.0 - 0.5;
+
+        let center1 = other.get_position()
+            + Coord {
+                x: radius1,
+                y: radius1,
+            };
+        let center2 = self.get_position()
+            + Coord {
+                x: radius2,
+                y: radius2,
+            };
+
+        let distance = center1.distance_to(&center2);
+
+        distance < radius1 + radius2 + extra_reach
+    }
 }
+
 // Trait for anything that can move on the screen
 pub trait Movable {
     fn update_position(&mut self);
@@ -60,25 +119,24 @@ pub trait Movable {
 // Trait for anything that's visible on screen
 pub trait Visible {
     fn draw(&self);
-    fn collided_with(&self, other: &Entity) -> bool;
+    fn get_size(&self) -> f64;
+    fn get_position(&self) -> Coord;
+    // fn collided_with(&self, other: &impl Visible, extra_reach: f64) -> bool;
 }
 
 impl Movable for Entity {
     fn update_position(&mut self) {
-        let mut norm = (self.direction.x.powi(2) + self.direction.y.powi(2)).sqrt();
-        if norm <= EPSILON {
-            norm = 1.0;
+        let mut norm = self.direction.norm();
+        if norm <= f64::EPSILON {
+            return;
         }
-        self.position.x += self.direction.x * self.speed / norm;
-        self.position.y += self.direction.y * self.speed / norm;
-        self.position.x = self
-            .position
-            .x
-            .clamp(0.0, (SCREEN_SIZE as f64 - self.size) as f64);
-        self.position.y = self
-            .position
-            .y
-            .clamp(0.0, (SCREEN_SIZE as f64 - self.size) as f64);
+        self.position += self.direction.scale(self.speed / norm);
+        self.position = self.position.clamp(
+            0.0,
+            SCREEN_SIZE as f64 - self.size,
+            0.0,
+            SCREEN_SIZE as f64 - self.size,
+        );
     }
 }
 
@@ -93,24 +151,10 @@ impl Visible for Entity {
         );
     }
 
-    fn collided_with(&self, other: &Entity) -> bool {
-        // // Square bounding box collision
-        // ((self.position.x + (self.size - 1) as f64 > other.position.x)
-        //     && (self.position.x < other.position.x + (other.size - 1) as f64))
-        //     && ((self.position.y + (self.size - 1) as f64 > other.position.y)
-        //         && (self.position.y < other.position.y + (other.size - 1) as f64))
-
-        //Circular bounding box collision
-        let radius1 = other.size / 2.0;
-        let radius2 = self.size / 2.0;
-        let x1_center = other.position.x + radius1;
-        let y1_center = other.position.y + radius1;
-        let x2_center = self.position.x + radius2;
-        let y2_center = self.position.y + radius2;
-        let dx = x1_center - x2_center;
-        let dy = y1_center - y2_center;
-        let distance = (dx * dx + dy * dy).sqrt();
-
-        distance < radius1 + radius2
+    fn get_size(&self) -> f64 {
+        self.size
+    }
+    fn get_position(&self) -> Coord {
+        self.position
     }
 }

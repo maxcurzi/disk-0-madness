@@ -1,15 +1,7 @@
-use std::f64::EPSILON;
-
 use crate::entity::{Coord, Entity, Movable, Visible};
 use crate::player::Player;
 
 pub struct Enemy(Entity);
-impl Movable for Enemy {
-    fn update_position(&mut self) {
-        self.0.update_position();
-        self.0.life -= 1;
-    }
-}
 
 impl Enemy {
     // Enemies souldn't live forever. This is to avoid that very skilled players
@@ -26,20 +18,28 @@ impl Enemy {
 
     pub fn follow(&mut self, player: &Player) {
         // Standard pure pursuit
-        let new_dir_x = player.get_position().x + (player.get_size() as f64 / 2.0)
-            - (self.0.position.x + self.0.size as f64 / 2.0);
-        let new_dir_y = player.get_position().y + (player.get_size() as f64 / 2.0)
-            - (self.0.position.y + self.0.size as f64 / 2.0);
-        let ddx = self.0.direction.x - new_dir_x;
-        let ddy = self.0.direction.y - new_dir_y;
-        let norm = (ddx * ddx + ddy * ddy).sqrt();
-        if norm <= 2.0 * EPSILON {
+        let p_radius = player.get_size() / 2.0;
+        let e_radius = self.get_size() / 2.0;
+
+        let p_center = player.get_position()
+            + Coord {
+                x: p_radius,
+                y: p_radius,
+            };
+        let e_center = self.get_position()
+            + Coord {
+                x: e_radius,
+                y: e_radius,
+            };
+        let p_to_e = p_center - e_center;
+        let norm = p_to_e.norm();
+        if norm <= 2.0 * f64::EPSILON {
             return;
         }
 
         // Rate limit turns to make enemies slightly slower to follow sharp turns for more satisfying scapes
-        let ddx_norm = (self.0.direction.x - new_dir_x / norm).clamp(-0.09, 0.09);
-        let ddy_norm = (self.0.direction.y - new_dir_y / norm).clamp(-0.09, 0.09);
+        let ddx_norm = (self.0.direction.x - p_to_e.x / norm).clamp(-0.09, 0.09);
+        let ddy_norm = (self.0.direction.y - p_to_e.y / norm).clamp(-0.09, 0.09);
         self.0.direction.x -= ddx_norm;
         self.0.direction.y -= ddy_norm;
     }
@@ -77,31 +77,20 @@ impl Enemy {
     pub fn get_color(&self) -> u16 {
         self.0.color
     }
-    pub fn collided_with(&self, player: &Player) -> bool {
-        if self.0.life > (Self::DEFAULT_LIFE_SPAN - Self::I_FRAMES_ON_SPAWN)
-            && player.get_color() != self.get_color()
-        {
-            return false;
-        }
-        let extra_reach: f64 = if player.get_color() != self.get_color() {
-            -2.5 // Reduce player size to allow satisfying escapes
-        } else {
-            0.5 // Increase player size to make easy to absorbe
-        };
 
-        let other: Entity = Entity {
-            position: Coord {
-                x: player.get_position().x - extra_reach,
-                y: player.get_position().y - extra_reach,
-            },
-            direction: Coord { x: 0.0, y: 0.0 }, //don't care
-            size: player.get_size() as f64 + extra_reach * 2.0,
-            speed: 0.0, //don't care
-            id: 0,      //don't care
-            color: player.get_color(),
-            life: 0, //don't care
-        };
-        self.0.collided_with(&other)
+    pub fn just_spawned(&self) -> bool {
+        self.life() > Self::DEFAULT_LIFE_SPAN - Self::I_FRAMES_ON_SPAWN
+    }
+
+    pub fn get_super(&self) -> Entity {
+        self.0
+    }
+}
+
+impl Movable for Enemy {
+    fn update_position(&mut self) {
+        self.0.update_position();
+        self.0.life -= 1;
     }
 }
 
@@ -109,7 +98,13 @@ impl Visible for Enemy {
     fn draw(&self) {
         self.0.draw();
     }
-    fn collided_with(&self, other: &Entity) -> bool {
-        self.0.collided_with(other)
+    // fn collided_with(&self, other: &impl Visible, extra_reach: f64) -> bool {
+    //     self.0.collided_with(other, extra_reach)
+    // }
+    fn get_size(&self) -> f64 {
+        self.0.size
+    }
+    fn get_position(&self) -> Coord {
+        self.0.position
     }
 }
