@@ -68,7 +68,7 @@ impl Sub for Coord {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Debug)]
 pub struct Entity {
     pub position: Coord,
     pub direction: Coord,
@@ -90,8 +90,9 @@ impl Entity {
             life: 0,
         }
     }
-    pub fn collided_with(&self, other: &impl Visible, extra_reach: f64) -> bool {
-        //Circular bounding box collision
+
+    /// Distance between the center of two visible entities (assumed circular)
+    pub fn distance(&self, other: &impl Visible) -> f64 {
         let radius1 = other.get_size() / 2.0 - 0.5;
         let radius2 = self.get_size() / 2.0 - 0.5;
 
@@ -106,9 +107,15 @@ impl Entity {
                 y: radius2,
             };
 
-        let distance = center1.distance_to(&center2);
+        center1.distance_to(&center2)
+    }
 
-        distance < radius1 + radius2 + extra_reach
+    pub fn collided_with(&self, other: &impl Visible, extra_reach: f64) -> bool {
+        //Circular bounding box collision
+        let radius1 = other.get_size() / 2.0 - 0.5;
+        let radius2 = self.get_size() / 2.0 - 0.5;
+
+        self.distance(other) < radius1 + radius2 + extra_reach
     }
 }
 

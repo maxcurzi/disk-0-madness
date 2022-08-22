@@ -2,7 +2,7 @@ use crate::entity::{Coord, Entity, Visible};
 use crate::palette::COLOR_BOMB;
 use crate::wasm4::SCREEN_SIZE;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug)]
 pub struct Bomb(Entity);
 
 impl Bomb {
@@ -29,15 +29,15 @@ impl Bomb {
         self.0.life -= 1;
     }
 
-    pub fn life(&self) -> u32 {
+    pub fn get_life(&self) -> u32 {
         self.0.life
     }
 
-    pub fn id(&self) -> usize {
+    pub fn get_id(&self) -> usize {
         self.0.id
     }
-    pub fn get_super(&self) -> Entity {
-        self.0
+    pub fn get_super(&self) -> &Entity {
+        &self.0
     }
 }
 

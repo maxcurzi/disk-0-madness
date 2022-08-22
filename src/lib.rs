@@ -12,9 +12,9 @@ use game::Game;
 use lazy_static::lazy_static;
 use std::sync::Mutex;
 mod intro_screen;
-mod music;
 mod notes;
 mod screen;
+mod sound;
 mod title_image;
 
 lazy_static! {

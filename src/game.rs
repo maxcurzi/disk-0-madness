@@ -6,21 +6,21 @@ use crate::bomb::Bomb;
 use crate::draws;
 use crate::enemy::Enemy;
 use crate::entity::{Coord, Movable, Visible};
-use crate::music::{self, GAME_OVER_SONG, GAME_SONG_START, INTRO_SONG, VOICE_NOTES};
 use crate::palette::{self, COLOR1, COLOR2, HEART};
-use crate::player::Player;
+use crate::player::{Player, PlayerN};
 use crate::screen;
+use crate::sound::{self, GAME_OVER_SONG, GAME_SONG_START, INTRO_SONG, VOICE_NOTES};
 use crate::wasm4::{
-    blit, diskr, diskw, text, BLIT_1BPP, BUTTON_1, BUTTON_2, BUTTON_DOWN, BUTTON_LEFT,
-    BUTTON_RIGHT, BUTTON_UP, GAMEPAD1, MOUSE_BUTTONS, MOUSE_LEFT, MOUSE_MIDDLE, MOUSE_RIGHT,
-    MOUSE_X, MOUSE_Y, SCREEN_SIZE,
+    blit, diskr, diskw, text, trace, BLIT_1BPP, BUTTON_1, BUTTON_2, BUTTON_DOWN, BUTTON_LEFT,
+    BUTTON_RIGHT, BUTTON_UP, GAMEPAD1, GAMEPAD2, GAMEPAD3, GAMEPAD4, MOUSE_BUTTONS, MOUSE_LEFT,
+    MOUSE_MIDDLE, MOUSE_RIGHT, MOUSE_X, MOUSE_Y, SCREEN_SIZE,
 };
 
 use fastrand::Rng;
 const RNG_SEED: u64 = 555;
 const MAX_ENEMIES: usize = 200;
 const MAX_BOMBS: usize = 16;
-const INIT_LIVES: usize = 3;
+const INIT_LIVES: usize = 10;
 const INIT_DIFFICULTY: u32 = 0;
 const BOMB_FRAME_FREQ: usize = 300;
 const MUSIC_SPEED_CTRL: usize = 5;
@@ -38,18 +38,18 @@ const DIFF_MUL_PROGRESSION: [u32; DIFFICULTY_LEVELS - 1] =
 
 /// Entities include the player, enemies and bombs
 struct Entities {
-    player: Player,
-    bombs: HashMap<usize, Box<(Bomb, bool)>>,
+    players: [Option<Player>; 4],
+    bombs: HashMap<usize, Box<(Bomb, bool, usize)>>, // Indexed by ID. (Bomb instance, exploded  flag, id of who exploded it)
     enemies: HashMap<usize, Box<Enemy>>,
     killer: Option<Enemy>, // stores enemy that killed player
 }
 
 impl Entities {
     fn new() -> Self {
-        let mut player = Player::new();
+        let mut player = Player::new(PlayerN::P1);
         player.set_life(INIT_LIVES as u32);
         Self {
-            player,
+            players: [Some(player), None, None, None],
             bombs: HashMap::with_capacity(MAX_BOMBS),
             enemies: HashMap::with_capacity(MAX_ENEMIES),
             killer: None,
@@ -62,12 +62,31 @@ impl Entities {
     }
 
     fn update_position(&mut self) {
-        self.player.update_position();
-        self.player.stop();
+        for player in self.players.iter_mut() {
+            match player {
+                Some(p) => {
+                    p.update_position();
+                    p.stop();
+                }
+                None => (),
+            }
+        }
+
         for (_, enemy) in self.enemies.iter_mut() {
-            enemy.follow(&self.player);
+            let mut to_follow: &Player = self.players[0].as_ref().expect("Player should exist");
+
+            let mut temp_distance = (SCREEN_SIZE * 2) as f64;
+            for player in self.players.iter().flatten() {
+                let distance = enemy.get_super().distance(player);
+                if distance < temp_distance {
+                    temp_distance = distance;
+                    to_follow = player;
+                };
+            }
+            enemy.follow(to_follow);
             enemy.update_position();
         }
+
         for (_, bomb) in self.bombs.iter_mut() {
             if bomb.1 {
                 bomb.0.grow();
@@ -89,7 +108,7 @@ impl Entities {
 
         let mut bombs_to_delete: Vec<usize> = vec![];
         for (&id, bomb) in self.bombs.iter_mut() {
-            if bomb.0.life() == 0 {
+            if bomb.0.get_life() == 0 {
                 bombs_to_delete.push(id);
             }
         }
@@ -101,7 +120,11 @@ impl Entities {
     fn draw(&self) {
         // Draw player before the enemies so in case of overlap it looks more
         // "squishy" when escaping. Bombs should cover enemies so are drawn last.
-        self.player.draw();
+        for player in &self.players {
+            if player.is_some() {
+                player.as_ref().expect("Player should exist").draw();
+            }
+        }
 
         for enemy in self.enemies.values() {
             enemy.draw();
@@ -118,48 +141,78 @@ impl Entities {
         let mut bombs_exploded = 0;
 
         // Player-Bomb collision
-        for (_id, boxed_bomb) in self.bombs.iter_mut() {
-            let bomb = boxed_bomb.0.to_owned();
-            let exploded = boxed_bomb.1.borrow_mut();
-            if bomb.get_super().collided_with(&self.player, 2.0) && !*exploded {
-                bombs_exploded += 1;
-                *exploded = true;
+        'bombs_loop: for (_id, boxed_bomb) in self.bombs.iter_mut() {
+            let bomb = &boxed_bomb.0;
+            let exploded = &mut boxed_bomb.1;
+            let who_exploded_it = boxed_bomb.2.borrow_mut();
+            'players_loop: for player in &self.players {
+                if player.is_some()
+                    && bomb
+                        .get_super()
+                        .collided_with(player.as_ref().expect("Player should exist"), 2.0)
+                    && !*exploded
+                {
+                    bombs_exploded += 1;
+                    *exploded = true;
+                    *who_exploded_it = player.as_ref().expect("Player should exist").get_id();
+                    continue 'bombs_loop;
+                }
             }
         }
 
-        'outer: for (_id, enemy) in self.enemies.iter_mut() {
+        'enemies_loop: for (_id, enemy) in self.enemies.iter_mut() {
             // Bomb-Enemy collision
-            for boxed_bomb in self.bombs.values() {
-                let bomb = boxed_bomb.0.to_owned();
-                let exploded = boxed_bomb.1.to_owned();
+            'bombs_loop: for boxed_bomb in self.bombs.values() {
+                let bomb = &boxed_bomb.0;
+                let exploded = boxed_bomb.1;
+                let who_exploded_it = boxed_bomb.2;
                 let extra_reach = 2.0; // Makes enemies easier to convert
                 if exploded && bomb.get_super().collided_with(enemy.as_ref(), extra_reach) {
-                    enemy.set_color(self.player.get_color())
+                    enemy.set_color(
+                        self.players[who_exploded_it]
+                            .as_ref()
+                            .expect("An exploded bomb should have a owner")
+                            .get_color(),
+                    );
+                    break 'bombs_loop; // One exploded bomb <=> One player
                 }
             }
 
             // Enemy-Player collision (same color)
-            if enemy.get_color() == self.player.get_color()
-                && enemy.get_super().collided_with(&self.player, 2.0)
-            {
-                enemy.kill();
-                enemies_killed += 1;
+            'players_loop: for player in &self.players {
+                if player.is_some()
+                    && enemy.get_color()
+                        == player.as_ref().expect("Player should exist").get_color()
+                    && enemy
+                        .get_super()
+                        .collided_with(player.as_ref().expect("Player should exist"), 2.0)
+                {
+                    enemy.kill();
+                    enemies_killed += 1;
+                    break 'players_loop; // Only one player should be able to "eat" one enemy
+                }
             }
 
             // Enemy-Player collision (different colors)
-            if enemy.get_color() != self.player.get_color()
-                && !enemy.just_spawned()
-                && enemy.get_super().collided_with(&self.player, -2.0)
-            {
-                // Player dies
-                self.killer = Some(Enemy::new(
-                    enemy.id(),
-                    enemy.get_position().x,
-                    enemy.get_position().y,
-                    enemy.get_color(),
-                ));
-                enemy.kill();
-                break 'outer;
+            'players_loop: for player in &self.players {
+                if player.is_some()
+                    && enemy.get_color()
+                        != player.as_ref().expect("Player should exist").get_color()
+                    && !enemy.just_spawned()
+                    && enemy
+                        .get_super()
+                        .collided_with(player.as_ref().expect("Player should exist"), -2.0)
+                {
+                    // Player dies
+                    self.killer = Some(Enemy::new(
+                        player.as_ref().expect("Player should exist").get_id(),
+                        enemy.get_position().x,
+                        enemy.get_position().y,
+                        enemy.get_color(),
+                    ));
+                    enemy.kill();
+                    break 'enemies_loop; // Stop everything.
+                }
             }
         }
 
@@ -197,7 +250,6 @@ impl Timers {
 
     fn tick(&mut self) {
         self.frame_count = self.frame_count.wrapping_add(1);
-        // self.death_countdown = self.death_countdown.saturating_sub(1);
         self.respite = self.respite.saturating_sub(1);
         self.song_tick = self.song_tick.wrapping_add(1);
     }
@@ -317,20 +369,20 @@ impl Environment {
     }
 
     fn update(&mut self, _tick: usize, song_tick: usize) {
-        music::play_music(song_tick / MUSIC_SPEED_CTRL as usize, self.song_nr);
+        sound::play_music(song_tick / MUSIC_SPEED_CTRL as usize, self.song_nr);
         self.draw_space();
     }
 
     fn play_sound_effects(&self, bombs_exploded: bool, extra_life: bool, player_died: bool) {
         // We just have very few sound effects.
         if bombs_exploded {
-            music::bomb_sound();
+            sound::bomb_sound();
         }
         if extra_life {
-            music::extra_life_sound();
+            sound::extra_life_sound();
         }
         if player_died {
-            music::death_sound();
+            sound::death_sound();
         }
     }
 
@@ -342,27 +394,33 @@ impl Environment {
 
 /// Handles user actions (mainly keyboard and mouse actions)
 struct Controls {
-    prev_gamepad: u8,
     prev_mouse: u8,
+    prev_gamepad1: u8,
+    prev_gamepad2: u8,
+    prev_gamepad3: u8,
+    prev_gamepad4: u8,
 }
 
 enum ControlEvent {
-    KbdLeft,
-    KbdDown,
-    KbdUp,
-    KbdRight,
-    KbdBtn1,
-    KbdBtn2,
-    MouseRightHold((i16, i16)),
-    MouseLeftClick,
+    MouseLeftHold((i16, i16)),
+    MouseRightClick,
     MouseMiddleClick,
+    Left(PlayerN),
+    Down(PlayerN),
+    Up(PlayerN),
+    Right(PlayerN),
+    Btn1(PlayerN),
+    Btn2(PlayerN),
 }
 impl Controls {
     const MOUSE_AREA_PADDING: i16 = 20; // Extra space around play area to allow mouse events.
     fn new() -> Self {
         Self {
-            prev_gamepad: unsafe { *GAMEPAD1 },
             prev_mouse: unsafe { *MOUSE_BUTTONS },
+            prev_gamepad1: unsafe { *GAMEPAD1 },
+            prev_gamepad2: unsafe { *GAMEPAD2 },
+            prev_gamepad3: unsafe { *GAMEPAD3 },
+            prev_gamepad4: unsafe { *GAMEPAD4 },
         }
     }
 
@@ -372,43 +430,31 @@ impl Controls {
         let mut event = vec![];
 
         // Local vars
-        let gamepad = unsafe { *GAMEPAD1 };
-        let just_pressed_gamepad = gamepad & (gamepad ^ self.prev_gamepad);
         let mouse = unsafe { *MOUSE_BUTTONS };
         let just_pressed_mouse = mouse & (mouse ^ self.prev_mouse);
 
-        // Check gamepad
-        if gamepad & BUTTON_LEFT != 0 {
-            event.push(ControlEvent::KbdLeft);
-        }
-        if gamepad & BUTTON_DOWN != 0 {
-            event.push(ControlEvent::KbdDown);
-        }
-        if gamepad & BUTTON_UP != 0 {
-            event.push(ControlEvent::KbdUp);
-        }
-        if gamepad & BUTTON_RIGHT != 0 {
-            event.push(ControlEvent::KbdRight);
-        }
-        if just_pressed_gamepad & BUTTON_1 != 0 {
-            event.push(ControlEvent::KbdBtn1);
-        }
-        if just_pressed_gamepad & BUTTON_2 != 0 {
-            event.push(ControlEvent::KbdBtn2);
-        }
+        let gamepad1 = unsafe { *GAMEPAD1 };
+        let gamepad2 = unsafe { *GAMEPAD2 };
+        let gamepad3 = unsafe { *GAMEPAD3 };
+        let gamepad4 = unsafe { *GAMEPAD4 };
+
+        let just_pressed_gamepad1 = gamepad1 & (gamepad1 ^ self.prev_gamepad1);
+        let just_pressed_gamepad2 = gamepad2 & (gamepad2 ^ self.prev_gamepad2);
+        let just_pressed_gamepad3 = gamepad3 & (gamepad3 ^ self.prev_gamepad3);
+        let just_pressed_gamepad4 = gamepad4 & (gamepad4 ^ self.prev_gamepad4);
 
         // Check mouse
-        if mouse & MOUSE_RIGHT != 0
+        if mouse & MOUSE_LEFT != 0
             && self.mouse_in_play_area_within_padding(Self::MOUSE_AREA_PADDING)
         {
             let mouse_x = unsafe { *MOUSE_X };
             let mouse_y = unsafe { *MOUSE_Y };
-            event.push(ControlEvent::MouseRightHold((mouse_x, mouse_y)));
+            event.push(ControlEvent::MouseLeftHold((mouse_x, mouse_y)));
         }
-        if just_pressed_mouse & MOUSE_LEFT != 0
+        if just_pressed_mouse & MOUSE_RIGHT != 0
             && self.mouse_in_play_area_within_padding(Self::MOUSE_AREA_PADDING)
         {
-            event.push(ControlEvent::MouseLeftClick);
+            event.push(ControlEvent::MouseRightClick);
         }
         if just_pressed_mouse & MOUSE_MIDDLE != 0
             && self.mouse_in_play_area_within_padding(Self::MOUSE_AREA_PADDING)
@@ -416,7 +462,37 @@ impl Controls {
             event.push(ControlEvent::MouseMiddleClick);
         }
 
-        self.prev_gamepad = gamepad;
+        // Check gamepads
+        for (gamepad, just_pressed, player_n) in [
+            (gamepad1, just_pressed_gamepad1, PlayerN::P1),
+            (gamepad2, just_pressed_gamepad2, PlayerN::P2),
+            (gamepad3, just_pressed_gamepad3, PlayerN::P3),
+            (gamepad4, just_pressed_gamepad4, PlayerN::P4),
+        ] {
+            if gamepad & BUTTON_LEFT != 0 {
+                event.push(ControlEvent::Left(player_n));
+            }
+            if gamepad & BUTTON_DOWN != 0 {
+                event.push(ControlEvent::Down(player_n));
+            }
+            if gamepad & BUTTON_UP != 0 {
+                event.push(ControlEvent::Up(player_n));
+            }
+            if gamepad & BUTTON_RIGHT != 0 {
+                event.push(ControlEvent::Right(player_n));
+            }
+            if just_pressed & BUTTON_1 != 0 {
+                event.push(ControlEvent::Btn1(player_n));
+            }
+            if just_pressed & BUTTON_2 != 0 {
+                event.push(ControlEvent::Btn2(player_n));
+            }
+        }
+
+        self.prev_gamepad1 = gamepad1;
+        self.prev_gamepad2 = gamepad2;
+        self.prev_gamepad3 = gamepad3;
+        self.prev_gamepad4 = gamepad4;
         self.prev_mouse = mouse;
 
         event
@@ -481,6 +557,7 @@ impl Game {
     /// A game restarts when the player runs out of lives and decides to play
     /// again. Use a new random seed for the rng, to keep the universe fresh.
     pub fn restart(&mut self) {
+        // let players = self.entities.players;
         self.entities = Entities::new();
         self.calibrations = Calibrations::new(self.timers.frame_count);
         self.environment = Environment::new(&self.calibrations.rng);
@@ -489,10 +566,12 @@ impl Game {
         self.flags = Flags::new();
         self.flags.show_title = false;
         self.flags.show_htp = false;
-        let mut player = Player::new();
-        player.set_life(INIT_LIVES as u32);
-
-        self.entities.player = player;
+        if self.entities.players[0].is_some() {
+            self.entities.players[0]
+                .as_mut()
+                .expect("Player should exist")
+                .set_life(INIT_LIVES as u32);
+        }
     }
 
     /// Read what actions the user has done and update the game accordingly.
@@ -500,47 +579,104 @@ impl Game {
         let control_events = self.controls.update();
         let mut continue_action = false;
         let movement_enabled = self.entities.killer.is_none();
+
         for event in control_events {
             match event {
-                ControlEvent::KbdLeft => {
-                    if movement_enabled {
-                        self.entities.player.left();
+                ControlEvent::Left(player_n) => {
+                    if movement_enabled && self.entities.players[player_n as usize].is_some() {
+                        self.entities.players[player_n as usize]
+                            .as_mut()
+                            .expect("Player should exist")
+                            .left();
                     }
                 }
-                ControlEvent::KbdDown => {
-                    if movement_enabled {
-                        self.entities.player.down();
+                ControlEvent::Down(player_n) => {
+                    if movement_enabled && self.entities.players[player_n as usize].is_some() {
+                        self.entities.players[player_n as usize]
+                            .as_mut()
+                            .expect("Player should exist")
+                            .down();
                     }
                 }
-                ControlEvent::KbdUp => {
-                    if movement_enabled {
-                        self.entities.player.up();
+                ControlEvent::Up(player_n) => {
+                    if movement_enabled && self.entities.players[player_n as usize].is_some() {
+                        self.entities.players[player_n as usize]
+                            .as_mut()
+                            .expect("Player should exist")
+                            .up();
                     }
                 }
-                ControlEvent::KbdRight => {
-                    if movement_enabled {
-                        self.entities.player.right();
+                ControlEvent::Right(player_n) => {
+                    if movement_enabled && self.entities.players[player_n as usize].is_some() {
+                        self.entities.players[player_n as usize]
+                            .as_mut()
+                            .expect("Player should exist")
+                            .right();
                     }
                 }
-                ControlEvent::KbdBtn1 | ControlEvent::MouseLeftClick => {
-                    if movement_enabled {
-                        self.entities.player.switch_color();
+                ControlEvent::Btn1(player_n) => {
+                    if movement_enabled && self.entities.players[player_n as usize].is_some() {
+                        self.entities.players[player_n as usize]
+                            .as_mut()
+                            .expect("Player should exist")
+                            .switch_color();
+                    }
+                    // New player joins!
+                    if self.entities.players[player_n as usize].is_none() {
+                        trace(
+                            "Player ".to_owned()
+                                + (player_n as u8 + 1).to_string().as_str()
+                                + " joined!",
+                        );
+                        self.entities.players[player_n as usize] = Some(Player::new(player_n));
+                        let lives = self.entities.players[PlayerN::P1 as usize]
+                            .as_ref()
+                            .expect("Player 1 should exist")
+                            .get_life();
+                        self.entities.players[PlayerN::P1 as usize]
+                            .as_mut()
+                            .expect("Player 1 should exist")
+                            .set_life(lives + INIT_LIVES as u32);
+                        sound::new_player();
                     }
                     continue_action = true;
                 }
-                ControlEvent::KbdBtn2 | ControlEvent::MouseMiddleClick => {
+
+                ControlEvent::Btn2(player_n) => {
+                    trace(
+                        "Player ".to_owned()
+                            + (player_n as u8 + 1).to_string().as_str()
+                            + " changed palette!",
+                    );
                     self.environment.set_palette(self.environment.palette_n + 1);
                 }
-                ControlEvent::MouseRightHold((mouse_x, mouse_y)) => {
+
+                ControlEvent::MouseRightClick => {
                     if movement_enabled {
+                        self.entities.players[PlayerN::P1 as usize]
+                            .as_mut()
+                            .expect("Player 1 should exist")
+                            .switch_color();
+                    }
+                    continue_action = true;
+                }
+
+                ControlEvent::MouseMiddleClick => {
+                    self.environment.set_palette(self.environment.palette_n + 1);
+                }
+                ControlEvent::MouseLeftHold((mouse_x, mouse_y)) => {
+                    if movement_enabled {
+                        let player = self.entities.players[PlayerN::P1 as usize]
+                            .as_mut()
+                            .expect("Player 1 should exist");
                         let new_d_x = mouse_x as f64
-                            - self.entities.player.get_position().x
-                            - self.entities.player.get_size() as f64 / 2.0;
+                            - player.get_position().x
+                            - player.get_size() as f64 / 2.0;
                         let new_d_y = mouse_y as f64
-                            - self.entities.player.get_position().y
-                            - self.entities.player.get_size() as f64 / 2.0;
+                            - player.get_position().y
+                            - player.get_size() as f64 / 2.0;
                         if new_d_x.abs() > 1.0 || new_d_y.abs() > 1.0 {
-                            self.entities.player.set_direction(Coord {
+                            player.set_direction(Coord {
                                 x: new_d_x,
                                 y: new_d_y,
                             })
@@ -606,7 +742,12 @@ impl Game {
         }
 
         // End-game. Player ran out of lives, save high score and flag for game-over
-        if self.entities.player.get_life() == 0 {
+        if self.entities.players[0]
+            .as_mut()
+            .expect("Player should exist")
+            .get_life()
+            == 0
+        {
             self.flags.new_high_score = self.scores.current > self.scores.high;
             self.scores.high = max(self.scores.current, self.scores.high);
             self.flags.show_game_over = true;
@@ -629,9 +770,15 @@ impl Game {
         self.update_score(enemies_killed, bombs_exploded);
 
         if self.entities.killer.is_some() {
-            self.entities
-                .player
-                .set_life(self.entities.player.get_life().saturating_sub(1));
+            let life = self.entities.players[0]
+                .as_ref()
+                .expect("Player should exist")
+                .get_life();
+
+            self.entities.players[0]
+                .as_mut()
+                .expect("Player should exist")
+                .set_life(life.saturating_sub(1));
         }
 
         self.spawn_enemies();
@@ -685,9 +832,14 @@ impl Game {
     fn update_score(&mut self, enemies_killed: u32, bombs_exploded: u32) {
         self.scores.update(enemies_killed, bombs_exploded);
         if self.scores.current > self.calibrations.score_next_life {
-            self.entities
-                .player
-                .set_life(self.entities.player.get_life().saturating_add(1));
+            let life = self.entities.players[0]
+                .as_ref()
+                .expect("Player should exist")
+                .get_life();
+            self.entities.players[0]
+                .as_mut()
+                .expect("Player should exist")
+                .set_life(life.saturating_add(1));
             self.calibrations.score_next_life = self.calibrations.score_next_life.saturating_mul(2);
         }
     }
@@ -713,6 +865,7 @@ impl Game {
                         y: self.calibrations.rng.f64() * (SCREEN_SIZE - 20) as f64 + 10.0,
                     }),
                     false,
+                    0,
                 )),
             );
         }
@@ -792,7 +945,13 @@ impl Game {
         // );
         palette::set_draw_color(0x20);
         let h_start: i32 = SCREEN_SIZE as i32 - 9;
-        for l in 0..self.entities.player.get_life() {
+
+        // Only Player 1 lives count, it owns the whole pool
+        for l in 0..self.entities.players[0]
+            .as_ref()
+            .expect("Player should exist")
+            .get_life()
+        {
             blit(
                 &HEART,
                 h_start - l as i32 * 8,
@@ -806,7 +965,11 @@ impl Game {
 
     fn death_tick(&mut self) {
         // Just shows player and blink killer
-        self.entities.player.draw();
+        for player in self.entities.players.as_ref() {
+            if player.is_some() {
+                player.as_ref().expect("Player should exist").draw();
+            }
+        }
 
         match &self.entities.killer {
             Some(killer) => {

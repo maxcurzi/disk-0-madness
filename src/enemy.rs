@@ -56,7 +56,7 @@ impl Enemy {
         e.0.life = Self::DEFAULT_LIFE_SPAN; // n seconds at 60 FPS
         e
     }
-    pub fn id(&self) -> usize {
+    pub fn get_id(&self) -> usize {
         self.0.id
     }
     pub fn life(&self) -> u32 {
@@ -82,8 +82,8 @@ impl Enemy {
         self.life() > Self::DEFAULT_LIFE_SPAN - Self::I_FRAMES_ON_SPAWN
     }
 
-    pub fn get_super(&self) -> Entity {
-        self.0
+    pub fn get_super(&self) -> &Entity {
+        &self.0
     }
 }
 

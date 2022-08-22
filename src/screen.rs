@@ -4,7 +4,7 @@ use crate::{
     entity::{Coord, Visible},
     intro_screen::{INTRO_SCREEN, INTRO_SCREEN_FLAGS, INTRO_SCREEN_HEIGHT, INTRO_SCREEN_WIDTH},
     palette::{set_draw_color, COLOR1, COLOR2},
-    player::Player,
+    player::{Player, PlayerN},
     title_image::{TITLE1, TITLE1_FLAGS, TITLE1_HEIGHT, TITLE1_WIDTH},
     wasm4::{blit, rect, text, DRAW_COLORS, SCREEN_SIZE},
 };
@@ -54,7 +54,7 @@ pub fn how_to_play(tick: usize) {
     rect(hoff - 18, voff + 3, SCREEN_SIZE - 4, 15);
     set_draw_color(0x02);
     text("--- HOW TO PLAY ---", hoff - 16, voff + 7);
-    let mut player = Player::new();
+    let mut player = Player::new(PlayerN::P1);
 
     set_draw_color(0x12);
     text("   You:", hoff, voff + 25);

@@ -33,6 +33,9 @@ pub fn extra_life_sound() {
     );
 }
 
+pub fn new_player() {
+    tone(400 | 1000 << 16, 10, 100, TONE_PULSE2 | TONE_MODE1);
+}
 pub fn color1_sound() {
     tone(
         340,
