@@ -12,7 +12,8 @@
 
 
 
-A game written in Rust for the [WASM-4](https://wasm4.org) fantasy console.
+A game written in Rust for the [WASM-4](https://wasm4.org) fantasy console, published on [itch.io](https://maxcurzi.itch.io/disk-0-madness)
+
 Pronounce it how you want: "Disco madness" / "Disk O' madness" / "Disk-Zero madness".
 
 
@@ -71,7 +72,10 @@ Then run it with:
 ```shell
 w4 run target/wasm32-unknown-unknown/release/cart.wasm
 ```
-##
+
+## Releases
+https://github.com/maxcurzi/disk-0-madness/releases
+## WASM4
 For more info about setting up WASM-4, see the [quickstart guide](https://wasm4.org/docs/getting-started/setup?code-lang=rust#quickstart).
 
 ## Links (WASM4 fantasy console)

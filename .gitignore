@@ -1,3 +1,4 @@
 target/
 publish/
+wapm_packages/
 **/tmp

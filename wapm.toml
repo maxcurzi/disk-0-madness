@@ -11,7 +11,7 @@ repository = "https://github.com/maxcurzi/disk-0-madness"
 
 [[module]]
 name = "disk-0-madness"
-source = "disk-0-madness.wasm"
+source = "publish/disk-0-madness.wasm"
 abi = "wasm4"
 
 [module.interfaces]
