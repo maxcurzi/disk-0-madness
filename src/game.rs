@@ -20,7 +20,7 @@ use fastrand::Rng;
 const RNG_SEED: u64 = 555;
 const MAX_ENEMIES: usize = 200;
 const MAX_BOMBS: usize = 16;
-const INIT_LIVES: usize = 10;
+const INIT_LIVES: usize = 3;
 const INIT_DIFFICULTY: u32 = 0;
 const BOMB_FRAME_FREQ: usize = 300;
 const MUSIC_SPEED_CTRL: usize = 5;
@@ -403,6 +403,7 @@ struct Controls {
 
 enum ControlEvent {
     MouseLeftHold((i16, i16)),
+    MouseLeftClick,
     MouseRightClick,
     MouseMiddleClick,
     Left(PlayerN),
@@ -455,6 +456,11 @@ impl Controls {
             && self.mouse_in_play_area_within_padding(Self::MOUSE_AREA_PADDING)
         {
             event.push(ControlEvent::MouseRightClick);
+        }
+        if just_pressed_mouse & MOUSE_LEFT != 0
+            && self.mouse_in_play_area_within_padding(Self::MOUSE_AREA_PADDING)
+        {
+            event.push(ControlEvent::MouseLeftClick);
         }
         if just_pressed_mouse & MOUSE_MIDDLE != 0
             && self.mouse_in_play_area_within_padding(Self::MOUSE_AREA_PADDING)
@@ -658,9 +664,10 @@ impl Game {
                             .expect("Player 1 should exist")
                             .switch_color();
                     }
+                }
+                ControlEvent::MouseLeftClick => {
                     continue_action = true;
                 }
-
                 ControlEvent::MouseMiddleClick => {
                     self.environment.set_palette(self.environment.palette_n + 1);
                 }

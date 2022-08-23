@@ -22,6 +22,30 @@ const UP_ICON: &str = unsafe { std::str::from_utf8_unchecked(&[0x86]) };
 #[allow(clippy::invalid_utf8_in_unchecked)]
 const DOWN_ICON: &str = unsafe { std::str::from_utf8_unchecked(&[0x87]) };
 
+// Lmouse_icon
+const LMOUSE_ICON_WIDTH: u32 = 8;
+const LMOUSE_ICON_HEIGHT: u32 = 8;
+const LMOUSE_ICON_FLAGS: u32 = 1; // BLIT_2BPP
+const LMOUSE_ICON: [u8; 16] = [
+    0xff, 0xff, 0xfa, 0xab, 0xe0, 0x96, 0xe0, 0x96, 0xea, 0xaa, 0xe5, 0x56, 0xf9, 0x5b, 0xfe, 0xaf,
+];
+
+// Rmouse_icon
+const RMOUSE_ICON_WIDTH: u32 = 8;
+const RMOUSE_ICON_HEIGHT: u32 = 8;
+const RMOUSE_ICON_FLAGS: u32 = 1; // BLIT_2BPP
+const RMOUSE_ICON: [u8; 16] = [
+    0xea, 0xaf, 0x96, 0x0b, 0x96, 0x0b, 0xaa, 0xab, 0x95, 0x5b, 0xe5, 0x6f, 0xfa, 0xbf, 0xff, 0xff,
+];
+
+// Cmouse_icon
+const CMOUSE_ICON_WIDTH: u32 = 8;
+const CMOUSE_ICON_HEIGHT: u32 = 8;
+const CMOUSE_ICON_FLAGS: u32 = 1; // BLIT_2BPP
+const CMOUSE_ICON: [u8; 16] = [
+    0xea, 0xaf, 0x94, 0x5b, 0x94, 0x5b, 0xaa, 0xab, 0x95, 0x5b, 0xe5, 0x6f, 0xfa, 0xbf, 0xff, 0xff,
+];
+
 pub fn title(tick: usize) {
     unsafe { *DRAW_COLORS = 0x1234 };
     blit(
@@ -45,6 +69,8 @@ pub fn title(tick: usize) {
 }
 
 pub fn how_to_play(tick: usize) {
+    const HTP_TEXT_COLOR: u16 = 0x12;
+    const HTP_TEXT_COLOR_ALT: u16 = 0x13;
     let voff = 5;
     let hoff = 20;
 
@@ -56,10 +82,11 @@ pub fn how_to_play(tick: usize) {
     text("--- HOW TO PLAY ---", hoff - 16, voff + 7);
     let mut player = Player::new(PlayerN::P1);
 
-    set_draw_color(0x12);
+    set_draw_color(HTP_TEXT_COLOR);
     text("   You:", hoff, voff + 25);
     text(" Avoid:", hoff, voff + 35);
     text("Absorb:", hoff, voff + 45);
+    text("  Bomb:", hoff, voff + 55);
     player.set_position(Coord {
         x: hoff as f64 + 59.0,
         y: voff as f64 + 25.0,
@@ -70,41 +97,70 @@ pub fn how_to_play(tick: usize) {
     enemy.draw();
     let enemy = Enemy::new(0, hoff as f64 + 60.0, voff as f64 + 46.0, COLOR2);
     enemy.draw();
-
-    set_draw_color(0x12);
-    text(
-        LEFT_ICON.to_owned() + DOWN_ICON + UP_ICON + RIGHT_ICON + ":Move",
-        hoff,
-        voff + 60,
-    );
-    set_draw_color(0x12);
-    text("   ".to_owned() + X_ICON + ": -> ->", hoff, voff + 70);
-    player.set_position(Coord {
-        x: hoff as f64 + 40.0,
-        y: voff as f64 + 70.0,
-    });
-    player.draw();
-    player.set_position(Coord {
-        x: hoff as f64 + 64.0,
-        y: voff as f64 + 70.0,
-    });
-    player.switch_color();
-    player.draw();
-    player.switch_color();
-    player.set_position(Coord {
-        x: hoff as f64 + 88.0,
-        y: voff as f64 + 70.0,
-    });
-    player.draw();
-    set_draw_color(0x12);
-    text("Bombs  change", hoff, voff + 85);
-    text("the enemy color", hoff, voff + 95);
-    text("to your color!", hoff, voff + 105);
     let bomb = Bomb::new(&Coord {
-        x: hoff as f64 + 43.0,
-        y: voff as f64 + 84.0,
+        x: hoff as f64 + 58.0,
+        y: voff as f64 + 54.0,
     });
     bomb.draw();
+
+    set_draw_color(HTP_TEXT_COLOR);
+    text(
+        " /".to_owned() + LEFT_ICON + DOWN_ICON + UP_ICON + RIGHT_ICON + ":Move",
+        hoff,
+        voff + 70,
+    );
+    unsafe { *DRAW_COLORS = 0x0234 };
+    blit(
+        &LMOUSE_ICON,
+        hoff - 1,
+        voff + 69,
+        LMOUSE_ICON_WIDTH,
+        LMOUSE_ICON_HEIGHT,
+        LMOUSE_ICON_FLAGS,
+    );
+    set_draw_color(HTP_TEXT_COLOR);
+    text("    /".to_owned() + X_ICON + ": -> ->", hoff, voff + 80);
+    unsafe { *DRAW_COLORS = 0x0234 };
+    blit(
+        &RMOUSE_ICON,
+        hoff + 24,
+        voff + 80,
+        RMOUSE_ICON_WIDTH,
+        RMOUSE_ICON_HEIGHT,
+        RMOUSE_ICON_FLAGS,
+    );
+    player.set_position(Coord {
+        x: hoff as f64 + 55.0,
+        y: voff as f64 + 80.0,
+    });
+    player.draw();
+    player.set_position(Coord {
+        x: hoff as f64 + 80.0,
+        y: voff as f64 + 80.0,
+    });
+    player.switch_color();
+    player.draw();
+    player.switch_color();
+    player.set_position(Coord {
+        x: hoff as f64 + 104.0,
+        y: voff as f64 + 80.0,
+    });
+    player.draw();
+
+    // set_draw_color(0x12);
+    // text("Bombs  change", hoff, voff + 85);
+    // text("the enemy color", hoff, voff + 95);
+    // text("to your color!", hoff, voff + 105);
+    // let bomb = Bomb::new(&Coord {
+    //     x: hoff as f64 + 43.0,
+    //     y: voff as f64 + 84.0,
+    // });
+    // bomb.draw();
+    set_draw_color(HTP_TEXT_COLOR_ALT);
+    text("--Multiplayer--\nUp to 4 Players", hoff, voff + 96);
+    let mut player = Player::new(PlayerN::P1);
+    let mut player = Player::new(PlayerN::P2);
+    let mut player = Player::new(PlayerN::P3);
 
     set_draw_color(0x23);
     rect(hoff - 10, voff + 122, SCREEN_SIZE - 20, 13);
@@ -120,8 +176,18 @@ pub fn how_to_play(tick: usize) {
         hoff - 4,
         voff + 125,
     );
-    set_draw_color(0x13);
-    text(Z_ICON.to_owned() + ":palette", hoff + 66, voff + 145);
+
+    set_draw_color(HTP_TEXT_COLOR_ALT);
+    text("/".to_owned() + Z_ICON + ":palette", hoff + 54, voff + 145);
+    unsafe { *DRAW_COLORS = 0x0234 };
+    blit(
+        &CMOUSE_ICON,
+        hoff + 46,
+        voff + 145,
+        CMOUSE_ICON_WIDTH,
+        CMOUSE_ICON_HEIGHT,
+        CMOUSE_ICON_FLAGS,
+    );
 }
 
 pub fn game_over(tick: usize) {
