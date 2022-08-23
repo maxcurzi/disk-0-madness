@@ -1,14 +1,14 @@
 # disk-0 MADNESS
-![](assets/cover.png)
-![](assets/wasm4-animation-0.gif)
-![](assets/wasm4-screenshot-10.png)
+![](assets/screenshots/cover.png)
+![](assets/screenshots/wasm4-animation-0.gif)
+![](assets/screenshots/wasm4-screenshot-10.png)
 
-![](assets/wasm4-screenshot-9.png)
-![](assets/wasm4-screenshot-12.png)
-![](assets/wasm4-screenshot-14.png)
+![](assets/screenshots/wasm4-screenshot-9.png)
+![](assets/screenshots/wasm4-screenshot-12.png)
+![](assets/screenshots/wasm4-screenshot-14.png)
 
-![](assets/wasm4-screenshot-13.png)
-![](assets/htp-new.png)
+![](assets/screenshots/wasm4-screenshot-13.png)
+![](assets/screenshots/htp-new.png)
 
 
 
