@@ -158,9 +158,6 @@ pub fn how_to_play(tick: usize) {
     // bomb.draw();
     set_draw_color(HTP_TEXT_COLOR_ALT);
     text("--Multiplayer--\nUp to 4 Players", hoff, voff + 96);
-    let mut player = Player::new(PlayerN::P1);
-    let mut player = Player::new(PlayerN::P2);
-    let mut player = Player::new(PlayerN::P3);
 
     set_draw_color(0x23);
     rect(hoff - 10, voff + 122, SCREEN_SIZE - 20, 13);

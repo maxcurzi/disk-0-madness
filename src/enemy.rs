@@ -56,6 +56,7 @@ impl Enemy {
         e.0.life = Self::DEFAULT_LIFE_SPAN; // n seconds at 60 FPS
         e
     }
+    #[allow(dead_code)]
     pub fn get_id(&self) -> usize {
         self.0.id
     }

@@ -92,6 +92,7 @@ impl Player {
         self.0.color
     }
 
+    #[allow(dead_code)]
     pub fn get_super(&self) -> &Entity {
         &self.0
     }

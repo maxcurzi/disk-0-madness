@@ -33,6 +33,7 @@ impl Bomb {
         self.0.life
     }
 
+    #[allow(dead_code)]
     pub fn get_id(&self) -> usize {
         self.0.id
     }

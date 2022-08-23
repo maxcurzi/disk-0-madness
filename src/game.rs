@@ -145,6 +145,7 @@ impl Entities {
             let bomb = &boxed_bomb.0;
             let exploded = &mut boxed_bomb.1;
             let who_exploded_it = boxed_bomb.2.borrow_mut();
+            #[allow(unused_labels)]
             'players_loop: for player in &self.players {
                 if player.is_some()
                     && bomb
@@ -194,6 +195,7 @@ impl Entities {
             }
 
             // Enemy-Player collision (different colors)
+            #[allow(unused_labels)]
             'players_loop: for player in &self.players {
                 if player.is_some()
                     && enemy.get_color()

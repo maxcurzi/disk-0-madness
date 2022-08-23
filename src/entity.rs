@@ -1,6 +1,6 @@
 use crate::palette::set_draw_color;
 use crate::wasm4::{oval, SCREEN_SIZE};
-use std::ops::{Add, AddAssign, Mul, Sub};
+use std::ops::{Add, AddAssign, Sub};
 
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 pub struct Coord {
@@ -133,7 +133,7 @@ pub trait Visible {
 
 impl Movable for Entity {
     fn update_position(&mut self) {
-        let mut norm = self.direction.norm();
+        let norm = self.direction.norm();
         if norm <= f64::EPSILON {
             return;
         }
