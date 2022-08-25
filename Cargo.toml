@@ -1,5 +1,5 @@
 [package]
-name = "disk-0-madness"
+name = "cart" # Should be cart or w4 watch won't work (https://github.com/aduros/wasm4/issues/521)
 version = "1.1.0"
 edition = "2021"
 
