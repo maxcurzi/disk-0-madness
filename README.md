@@ -14,7 +14,7 @@
 
 A game written in Rust for the [WASM-4](https://wasm4.org) fantasy console, play it on [itch.io](https://maxcurzi.itch.io/disk-0-madness) or [here](https://maxcurzi.github.io/disk-0-madness/)!
 
-Entry submission for the WASM4 Game Jam #2, where it won 3rd place 🥉 (and ranked #1 🥇 in the Fun category!).
+Entry submission for the [WASM4 Game Jam #2](https://wasm4.org/blog/jam-2-results), where it won 3rd place 🥉 (and ranked #1 🥇 in the Fun category!).
 
 Pronounce it how you want: "Disco madness" / "Disk O' madness" / "Disk-Zero madness".
 
