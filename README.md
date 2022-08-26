@@ -29,7 +29,7 @@ You are a lone space-disk in an unfriendly territory, survive for as long as you
 - Press __Z__ anytime to change the game's palette.
 ### Controls [Mouse]:
  - Hold the __left__ mouse button and the player's disk will follow the pointer.
- - __Right__ click to change your disks's color in game
+ - __Right__ click to change your disk's color in game
  - __Middle__ click anytime to change the game's palette
 
 ## Multiplayer instructions
