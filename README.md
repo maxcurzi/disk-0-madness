@@ -12,7 +12,7 @@
 
 
 
-A game written in Rust for the [WASM-4](https://wasm4.org) fantasy console, published on [itch.io](https://maxcurzi.itch.io/disk-0-madness)
+A game written in Rust for the [WASM-4](https://wasm4.org) fantasy console, play it on [itch.io](https://maxcurzi.itch.io/disk-0-madness) or [here](https://maxcurzi.github.io/disk-0-madness/)!
 
 Pronounce it how you want: "Disco madness" / "Disk O' madness" / "Disk-Zero madness".
 
