@@ -9,17 +9,11 @@ use crate::{
     wasm4::{blit, rect, text, DRAW_COLORS, SCREEN_SIZE},
 };
 
-#[allow(clippy::invalid_utf8_in_unchecked)]
 const X_ICON: &str = unsafe { std::str::from_utf8_unchecked(&[0x80]) };
-#[allow(clippy::invalid_utf8_in_unchecked)]
 const Z_ICON: &str = unsafe { std::str::from_utf8_unchecked(&[0x81]) };
-#[allow(clippy::invalid_utf8_in_unchecked)]
 const LEFT_ICON: &str = unsafe { std::str::from_utf8_unchecked(&[0x84]) };
-#[allow(clippy::invalid_utf8_in_unchecked)]
 const RIGHT_ICON: &str = unsafe { std::str::from_utf8_unchecked(&[0x85]) };
-#[allow(clippy::invalid_utf8_in_unchecked)]
 const UP_ICON: &str = unsafe { std::str::from_utf8_unchecked(&[0x86]) };
-#[allow(clippy::invalid_utf8_in_unchecked)]
 const DOWN_ICON: &str = unsafe { std::str::from_utf8_unchecked(&[0x87]) };
 
 // Lmouse_icon

@@ -3,7 +3,7 @@ use crate::entity::{Coord, Entity, Movable, Visible};
 use crate::palette::{self, COLOR1, COLOR2};
 use crate::wasm4::SCREEN_SIZE;
 
-#[derive(PartialEq, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub enum PlayerN {
     P1 = 0,
     P2 = 1,
