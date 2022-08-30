@@ -8,7 +8,7 @@ use crate::enemy::Enemy;
 use crate::entity::{Coord, Movable, Visible};
 use crate::palette::{self, COLOR1, COLOR2, HEART};
 use crate::player::{Player, PlayerN};
-use crate::screen;
+use crate::screen::{self, ScreenName};
 use crate::sound::{self, GAME_OVER_SONG, GAME_SONG_START, INTRO_SONG, VOICE_NOTES};
 use crate::wasm4::{
     blit, diskr, diskw, text, trace, BLIT_1BPP, BUTTON_1, BUTTON_2, BUTTON_DOWN, BUTTON_LEFT,
@@ -322,17 +322,13 @@ impl Scores {
 /// transitions but given the game has a very linear structure the approach
 /// works fine.
 struct Flags {
-    show_htp: bool,
-    show_title: bool,
-    show_game_over: bool,
+    current_screen: ScreenName,
     new_high_score: bool,
 }
 impl Flags {
     fn new() -> Self {
         Self {
-            show_htp: true,
-            show_title: true,
-            show_game_over: false,
+            current_screen: ScreenName::Title,
             new_high_score: false,
         }
     }
@@ -572,8 +568,7 @@ impl Game {
         self.timers = Timers::new();
         self.scores = Scores::new();
         self.flags = Flags::new();
-        self.flags.show_title = false;
-        self.flags.show_htp = false;
+        self.flags.current_screen = ScreenName::MainGame;
         if self.entities.players[0].is_some() {
             self.entities.players[0]
                 .as_mut()
@@ -697,19 +692,11 @@ impl Game {
 
         // In a non-playing screen, waiting for input (pretty much the start
         // screen and the "Press X to start/continue" ones)
-        if (self.flags.show_title || self.flags.show_htp || self.flags.show_game_over)
-            && continue_action
-        {
-            if !self.flags.show_title && self.flags.show_htp {
-                self.flags.show_htp = false;
-                self.restart();
-            }
-            if self.flags.show_title {
-                self.flags.show_title = false;
-            }
-            if self.flags.show_game_over {
-                self.restart();
-                self.flags.show_game_over = false;
+        if continue_action {
+            match self.flags.current_screen {
+                ScreenName::Title => self.flags.current_screen = ScreenName::HowToPlay,
+                ScreenName::HowToPlay | ScreenName::GameOver => self.restart(),
+                ScreenName::MainGame => (),
             }
         }
     }
@@ -722,13 +709,13 @@ impl Game {
         self.process_inputs();
 
         // First we show the title screen
-        if self.flags.show_title {
+        if self.flags.current_screen == ScreenName::Title {
             screen::title(self.timers.frame_count);
             self.timers.tick();
             return;
         }
         // Then how to play
-        if self.flags.show_htp {
+        if self.flags.current_screen == ScreenName::HowToPlay {
             screen::how_to_play(self.timers.frame_count);
             self.timers.tick();
             return;
@@ -737,7 +724,7 @@ impl Game {
         // When the game starts the HUD will be always visible
         self.draw_hud();
         // Game over screen
-        if self.flags.show_game_over {
+        if self.flags.current_screen == ScreenName::GameOver {
             screen::game_over(self.timers.frame_count);
             self.timers.tick();
             return;
@@ -759,7 +746,7 @@ impl Game {
         {
             self.flags.new_high_score = self.scores.current > self.scores.high;
             self.scores.high = max(self.scores.current, self.scores.high);
-            self.flags.show_game_over = true;
+            self.flags.current_screen = ScreenName::GameOver;
             self.environment.song_nr = GAME_OVER_SONG as u8;
             self.timers.song_tick = 0;
 
@@ -930,7 +917,7 @@ impl Game {
         palette::set_draw_color(0x12);
         text(self.scores.current.to_string(), 1, 1);
         if self.flags.new_high_score
-            && self.flags.show_game_over
+            && self.flags.current_screen == ScreenName::GameOver
             && (self.timers.frame_count / 2) % 10 < 5
         {
             palette::set_draw_color(0x00);

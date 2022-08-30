@@ -40,6 +40,14 @@ const CMOUSE_ICON: [u8; 16] = [
     0xea, 0xaf, 0x94, 0x5b, 0x94, 0x5b, 0xaa, 0xab, 0x95, 0x5b, 0xe5, 0x6f, 0xfa, 0xbf, 0xff, 0xff,
 ];
 
+#[derive(PartialEq, Eq)]
+pub enum ScreenName {
+    Title,
+    HowToPlay,
+    MainGame,
+    GameOver,
+}
+
 pub fn title(tick: usize) {
     unsafe { *DRAW_COLORS = 0x1234 };
     blit(
