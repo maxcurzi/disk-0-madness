@@ -12,10 +12,12 @@ rustflags = [
     # Temporary workaround for #255 issue.
     # Reserve 8192 bytes of Rust stack space, offset from 6560.
     # Bump this value, 16-byte aligned, if the framebuffer gets corrupted.
-    # "-C", "link-arg=-zstack-size=14752",
     "-C",
-    "link-arg=-zstack-size=10656",
-    # "-C", "link-arg=-zstack-size=22944",
+    "link-arg=-zstack-size=14752",
+    # "-C",
+    # "link-arg=-zstack-size=10656",
+    # "-C",
+    # "link-arg=-zstack-size=22944",
 ]
 
 [profile.release]
