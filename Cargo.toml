@@ -19,8 +19,8 @@ wasm-snip = "0.4.0"
 [profile.release]
 opt-level = "z"
 lto = true
-# panic = 'abort'
-debug = true
+panic = 'abort'
+debug = false
 
 [features]
 # use `--no-default-features` or comment out next line to disable allocator
