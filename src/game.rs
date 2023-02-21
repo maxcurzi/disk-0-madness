@@ -5,7 +5,7 @@ use crate::{
     },
     common_types::Coord,
     controls::{ControlEvent, Controls},
-    draws,
+    draw_utils,
     entities::{
         bomb::Bomb,
         enemy::Enemy,
@@ -149,7 +149,7 @@ impl Environment {
     fn draw_space(&self) {
         palette::set_draw_color(0x44);
         for p in &self.space {
-            draws::pixel(p.0 as i32, p.1 as i32);
+            draw_utils::pixel(p.0 as i32, p.1 as i32);
         }
     }
 

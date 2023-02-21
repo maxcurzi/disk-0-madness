@@ -4,7 +4,7 @@ use super::{
 };
 use crate::{
     common_types::Coord,
-    draws,
+    draw_utils,
     palette::{self, DRAW_COLOR_A, DRAW_COLOR_B, DRAW_COLOR_PLAIN},
     wasm4::SCREEN_SIZE,
 };
@@ -158,7 +158,7 @@ impl Visible for Player {
         }
         palette::set_draw_color(DRAW_COLOR_PLAIN);
         for center_coord in dots {
-            draws::pixel(center_coord.x as i32, center_coord.y as i32);
+            draw_utils::pixel(center_coord.x as i32, center_coord.y as i32);
         }
     }
 }

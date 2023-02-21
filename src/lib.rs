@@ -1,6 +1,6 @@
 #[cfg(feature = "buddy-alloc")]
 mod alloc;
-mod draws;
+mod draw_utils;
 mod entities;
 mod game;
 mod palette;
