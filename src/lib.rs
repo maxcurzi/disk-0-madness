@@ -7,7 +7,7 @@ mod wasm4;
 use lazy_static::lazy_static;
 use std::sync::Mutex;
 mod calibrations;
-mod common_types;
+mod common;
 mod controls;
 mod sound;
 

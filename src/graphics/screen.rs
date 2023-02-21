@@ -1,5 +1,5 @@
 use crate::{
-    common_types::Coord,
+    common::types::Coord,
     entities::{
         bomb::Bomb,
         enemy::Enemy,

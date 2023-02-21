@@ -3,7 +3,7 @@ use crate::{
         Calibrations, BOMB_FRAME_FREQ, DEATH_COUNTDOWN_DURATION, DIFF_MUL_PROGRESSION, ENEMY_FRAME,
         EN_COL_FRAME, INIT_LIVES, MAX_BOMBS, MAX_ENEMIES, MUSIC_SPEED_CTRL, RESPITE_DURATION,
     },
-    common_types::Coord,
+    common::types::Coord,
     controls::{ControlEvent, Controls},
     entities::{
         bomb::Bomb,

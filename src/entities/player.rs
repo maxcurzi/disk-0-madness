@@ -3,7 +3,7 @@ use super::{
     traits::{Movable, Visible},
 };
 use crate::{
-    common_types::Coord,
+    common::types::Coord,
     graphics::{
         draw_utils,
         palette::{self, DRAW_COLOR_A, DRAW_COLOR_B, DRAW_COLOR_PLAIN},

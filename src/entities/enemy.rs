@@ -4,7 +4,7 @@ use super::{
     traits::{Movable, Visible},
 };
 
-use crate::{common_types::Coord, graphics::palette::DRAW_COLOR_A};
+use crate::{common::types::Coord, graphics::palette::DRAW_COLOR_A};
 pub struct Enemy {
     pub entity: Entity,
     pub follows: PlayerN,
