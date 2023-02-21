@@ -1,10 +1,10 @@
 use crate::{
-    common::{Coord, Movable, Visible},
+    common_types::Coord,
+    entities::traits::{Movable, Visible},
     palette,
     wasm4::{self, SCREEN_SIZE},
 };
 
-#[derive(Debug, Clone)]
 pub struct Entity {
     pub position: Coord,
     pub direction: Coord,

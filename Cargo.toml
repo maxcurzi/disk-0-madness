@@ -19,7 +19,7 @@ wasm-snip = "0.4.0"
 [profile.release]
 opt-level = "z"
 lto = true
-panic = 'abort'
+# panic = 'abort'
 debug = true
 
 [features]

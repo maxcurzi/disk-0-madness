@@ -1,18 +1,16 @@
 #[cfg(feature = "buddy-alloc")]
 mod alloc;
-mod bomb;
 mod draws;
-mod enemy;
-mod entity;
+mod entities;
 mod game;
 mod palette;
-mod player;
 mod wasm4;
 use lazy_static::lazy_static;
 use std::sync::Mutex;
-mod common;
+mod calibrations;
+mod common_types;
+mod controls;
 mod intro_screen;
-mod notes;
 mod screen;
 mod sound;
 mod title_image;

@@ -1,10 +1,14 @@
-use crate::{
+use crate::entities::{
     bomb::Bomb,
-    common::{Coord, Visible},
     enemy::Enemy,
+    player::{Player, PlayerN},
+    traits::Visible,
+};
+
+use crate::{
+    common_types::Coord,
     intro_screen::{INTRO_SCREEN, INTRO_SCREEN_FLAGS, INTRO_SCREEN_HEIGHT, INTRO_SCREEN_WIDTH},
     palette::{self, DRAW_COLOR_A, DRAW_COLOR_B},
-    player::{Player, PlayerN},
     title_image::{TITLE1, TITLE1_FLAGS, TITLE1_HEIGHT, TITLE1_WIDTH},
     wasm4::{self, SCREEN_SIZE},
 };

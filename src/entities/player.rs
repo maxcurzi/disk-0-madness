@@ -1,19 +1,21 @@
-use crate::{
-    common::{Coord, Movable, Visible},
-    draws,
+use super::{
     entity::Entity,
+    traits::{Movable, Visible},
+};
+use crate::{
+    common_types::Coord,
+    draws,
     palette::{self, DRAW_COLOR_A, DRAW_COLOR_B, DRAW_COLOR_PLAIN},
     wasm4::SCREEN_SIZE,
 };
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Copy, Clone)]
 pub enum PlayerN {
     P1 = 0,
     P2 = 1,
     P3 = 2,
     P4 = 3,
 }
-#[derive(Debug)]
 pub struct Player {
     pub entity: Entity,
     pub player_number: PlayerN,

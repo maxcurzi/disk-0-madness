@@ -1,57 +1,9 @@
 #![allow(unused)]
-use crate::{
-    notes::*,
-    wasm4::{
-        tone, TONE_MODE1, TONE_MODE2, TONE_MODE3, TONE_MODE4, TONE_NOISE, TONE_PAN_LEFT,
-        TONE_PAN_RIGHT, TONE_PULSE1, TONE_PULSE2, TONE_TRIANGLE,
-    },
+use super::notes::*;
+use crate::wasm4::{
+    self, TONE_MODE1, TONE_MODE2, TONE_MODE3, TONE_MODE4, TONE_NOISE, TONE_PAN_LEFT,
+    TONE_PAN_RIGHT, TONE_PULSE1, TONE_PULSE2, TONE_TRIANGLE,
 };
-
-pub fn bomb_sound() {
-    tone(
-        380 | (10 << 16),
-        10 | (10 << 16),
-        10,
-        TONE_PULSE1 | TONE_MODE3,
-    );
-}
-pub fn death_sound() {
-    tone(
-        140 | (110 << 16),
-        3 | (6 << 16),
-        60,
-        TONE_NOISE | TONE_MODE3,
-    );
-}
-
-pub fn extra_life_sound() {
-    tone(
-        6000 << 16,
-        1 | (3 << 8) | (8 << 16) | (3 << 24),
-        100 | (100 << 8),
-        TONE_PULSE1 | TONE_MODE1,
-    );
-}
-
-pub fn new_player() {
-    tone(400 | 1000 << 16, 10, 100, TONE_PULSE2 | TONE_MODE1);
-}
-pub fn color1_sound() {
-    tone(
-        340,
-        1 | (3 << 8) | (8 << 16),
-        24 << 8,
-        TONE_TRIANGLE | TONE_MODE1,
-    );
-}
-pub fn color2_sound() {
-    tone(
-        360,
-        1 | (3 << 8) | (8 << 16) | (3 << 24),
-        24 << 8,
-        TONE_TRIANGLE | TONE_MODE1,
-    );
-}
 
 pub const VOICE_NOTES: usize = 64;
 
@@ -59,11 +11,11 @@ fn voice_player(counter: usize, voice: Voice, duration: Duration, volume: Volume
     let idx = counter % VOICE_NOTES;
     let note = voice[idx];
     if note != XX {
-        tone(note as u32, duration, volume, flags);
+        wasm4::tone(note as u32, duration, volume, flags);
     }
 }
 
-pub fn play_music(counter: usize, song_n: u8) {
+pub fn play(counter: usize, song_n: u8) {
     let song = SONGS[song_n as usize];
     for voice in song.iter().flatten() {
         voice_player(counter, voice.0, voice.1, voice.2, voice.3);

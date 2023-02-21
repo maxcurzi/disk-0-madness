@@ -1,12 +1,6 @@
-use crate::{
-    common::{Coord, Visible},
-    entity::Entity,
-    palette::DRAW_COLOR_BOMB,
-    player::PlayerN,
-    wasm4::SCREEN_SIZE,
-};
+use super::{entity::Entity, player::PlayerN, traits::Visible};
+use crate::{common_types::Coord, palette::DRAW_COLOR_BOMB, wasm4::SCREEN_SIZE};
 
-#[derive(Debug)]
 pub struct Bomb {
     pub entity: Entity,
     pub exploded: bool,

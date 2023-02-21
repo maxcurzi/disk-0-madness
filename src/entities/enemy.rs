@@ -1,11 +1,10 @@
-use crate::{
-    common::{Coord, Movable, Visible},
+use super::{
     entity::Entity,
-    palette::DRAW_COLOR_A,
     player::{Player, PlayerN},
+    traits::{Movable, Visible},
 };
 
-#[derive(Clone)]
+use crate::{common_types::Coord, palette::DRAW_COLOR_A};
 pub struct Enemy {
     pub entity: Entity,
     pub follows: PlayerN,
@@ -62,7 +61,6 @@ impl Enemy {
     pub fn kill(&mut self) {
         self.entity.life = 0;
     }
-
     pub fn just_spawned(&self) -> bool {
         self.entity.life > Self::LIFE_SPAN - Self::I_FRAMES_ON_SPAWN
     }
