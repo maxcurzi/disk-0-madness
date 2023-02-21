@@ -1,6 +1,6 @@
 [package]
-name = "cart" # Should be cart or w4 watch won't work (https://github.com/aduros/wasm4/issues/521)
-version = "1.1.0"
+name = "cart"     # Should be cart or w4 watch won't work (https://github.com/aduros/wasm4/issues/521)
+version = "1.1.1"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -12,11 +12,15 @@ buddy-alloc = { version = "0.4.1", optional = true }
 fastrand = "1.8.0"
 lazy_static = "1.4.0"
 
+[dev-dependencies]
+wasm-opt = "0.111"
+wasm-snip = "0.4.0"
+
 [profile.release]
 opt-level = "z"
 lto = true
 panic = 'abort'
-debug = true
+debug = false
 
 [features]
 # use `--no-default-features` or comment out next line to disable allocator

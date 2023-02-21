@@ -5,9 +5,7 @@ pub fn set_draw_color(idx: u16) {
 }
 
 pub fn set_palette(palette: [u32; 4]) {
-    unsafe {
-        *PALETTE = palette;
-    }
+    unsafe { *PALETTE = palette }
 }
 
 pub fn set_palette_n(palette_n: usize) {
@@ -43,9 +41,10 @@ pub const PALETTES: [[u32; 4]; 10] = [
     [0x12000A, 0x3B9E0C, 0x0A7E48, 0x9E0C50],
 ];
 
-pub const COLOR1: u16 = 0x32;
-pub const COLOR2: u16 = 0x34;
-pub const COLOR_BOMB: u16 = 0x30;
+pub const DRAW_COLOR_PLAIN: u16 = 0x33;
+pub const DRAW_COLOR_A: u16 = 0x32;
+pub const DRAW_COLOR_B: u16 = 0x34;
+pub const DRAW_COLOR_BOMB: u16 = 0x30;
 
 #[rustfmt::skip]
 pub const HEART: [u8; 8] = [

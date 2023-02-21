@@ -1,29 +1,20 @@
 #[cfg(feature = "buddy-alloc")]
 mod alloc;
-mod bomb;
-mod draws;
-mod enemy;
-mod entity;
+mod entities;
 mod game;
-mod palette;
-mod player;
+mod graphics;
 mod wasm4;
-use game::Game;
 use lazy_static::lazy_static;
 use std::sync::Mutex;
-mod intro_screen;
-mod notes;
-mod screen;
+mod common;
 mod sound;
-mod title_image;
-
 lazy_static! {
-    static ref PLAYER_GAME: Mutex<Game> = Mutex::new(Game::new());
+    static ref PLAYER_GAME: Mutex<game::Game> = Mutex::new(game::Game::new());
 }
 
 #[no_mangle]
 fn start() {
-    palette::set_palette_n(0);
+    graphics::palette::set_palette_n(0);
 }
 
 #[no_mangle]
