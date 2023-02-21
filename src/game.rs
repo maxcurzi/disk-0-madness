@@ -189,7 +189,7 @@ pub struct Game {
 }
 impl Game {
     pub fn new() -> Self {
-        let mut entities = Entities::new();
+        let entities = Entities::new();
         let timers = Timers::new();
         let calibrations = Calibrations::new(0);
         let scores = Scores::new();
