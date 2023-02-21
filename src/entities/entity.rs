@@ -1,7 +1,7 @@
 use crate::{
     common_types::Coord,
     entities::traits::{Movable, Visible},
-    palette,
+    graphics::palette,
     wasm4::{self, SCREEN_SIZE},
 };
 

@@ -1,5 +1,5 @@
 use super::{entity::Entity, player::PlayerN, traits::Visible};
-use crate::{common_types::Coord, palette::DRAW_COLOR_BOMB, wasm4::SCREEN_SIZE};
+use crate::{common_types::Coord, graphics::palette::DRAW_COLOR_BOMB, wasm4::SCREEN_SIZE};
 
 pub struct Bomb {
     pub entity: Entity,

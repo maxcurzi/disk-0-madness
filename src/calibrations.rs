@@ -1,6 +1,6 @@
 use fastrand::Rng;
 
-use crate::palette::DRAW_COLOR_B;
+use crate::graphics::palette::DRAW_COLOR_B;
 
 pub const RNG_SEED: u64 = 555;
 pub const MAX_ENEMIES: usize = 250;

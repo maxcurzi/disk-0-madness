@@ -1,16 +1,18 @@
-use crate::entities::{
-    bomb::Bomb,
-    enemy::Enemy,
-    player::{Player, PlayerN},
-    traits::Visible,
-};
-
 use crate::{
     common_types::Coord,
+    entities::{
+        bomb::Bomb,
+        enemy::Enemy,
+        player::{Player, PlayerN},
+        traits::Visible,
+    },
+    wasm4::{self, SCREEN_SIZE},
+};
+
+use super::{
     intro_screen::{INTRO_SCREEN, INTRO_SCREEN_FLAGS, INTRO_SCREEN_HEIGHT, INTRO_SCREEN_WIDTH},
     palette::{self, DRAW_COLOR_A, DRAW_COLOR_B},
     title_image::{TITLE1, TITLE1_FLAGS, TITLE1_HEIGHT, TITLE1_WIDTH},
-    wasm4::{self, SCREEN_SIZE},
 };
 
 const X_ICON: &[u8] = b"\x80";

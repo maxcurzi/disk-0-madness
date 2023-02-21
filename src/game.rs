@@ -5,7 +5,6 @@ use crate::{
     },
     common_types::Coord,
     controls::{ControlEvent, Controls},
-    draw_utils,
     entities::{
         bomb::Bomb,
         enemy::Enemy,
@@ -13,16 +12,19 @@ use crate::{
         player::{Player, PlayerN},
         traits::Visible,
     },
-    palette::{self, DRAW_COLOR_A, DRAW_COLOR_B, HEART},
-    screen::{self, ScreenName},
+    graphics::{
+        draw_utils::{self},
+        palette::{self, DRAW_COLOR_A, DRAW_COLOR_B},
+        screen::{self, ScreenName},
+    },
     sound::{
         effects,
         music::{self, GAME_OVER_SONG, GAME_SONG_START, INTRO_SONG, VOICE_NOTES},
     },
-    wasm4::{self, BLIT_1BPP, SCREEN_SIZE},
+    wasm4::{self, SCREEN_SIZE},
 };
 use fastrand::Rng;
-use std::{borrow::BorrowMut, cmp::max};
+use std::cmp::max;
 
 /// Counters to keep track of time in music and some events
 struct Timers {
@@ -153,7 +155,7 @@ impl Environment {
         }
     }
 
-    fn update(&mut self, _tick: usize, song_tick: usize) {
+    fn update(&self, _tick: usize, song_tick: usize) {
         music::play(song_tick / MUSIC_SPEED_CTRL, self.song_nr);
         self.draw_space();
     }
@@ -187,6 +189,11 @@ pub struct Game {
     environment: Environment,
     controls: Controls,
 }
+
+// Ideally it should be refactored quite a bit, maybe with the addition of an
+// event system. An event system mis not a trivial change (especially since I
+// can't get unit tests to work) and since this game was developed during a game
+// jam with limited time it was decided to be left as is.
 impl Game {
     pub fn new() -> Self {
         let entities = Entities::new();
@@ -220,7 +227,7 @@ impl Game {
         self.flags.current_screen = ScreenName::MainGame;
         self.entities.players[PlayerN::P1 as usize]
             .as_mut()
-            .expect("Player should exist")
+            .expect("P1 should always exist")
             .entity
             .life = INIT_LIVES;
     }
@@ -234,43 +241,38 @@ impl Game {
         for event in control_events {
             match event {
                 ControlEvent::Left(player_n) => {
-                    if movement_enabled && self.entities.players[player_n as usize].is_some() {
-                        self.entities.players[player_n as usize]
-                            .as_mut()
-                            .expect("Player should exist")
-                            .left();
+                    if movement_enabled {
+                        if let Some(player) = self.entities.players[player_n as usize].as_mut() {
+                            player.left();
+                        }
                     }
                 }
                 ControlEvent::Down(player_n) => {
-                    if movement_enabled && self.entities.players[player_n as usize].is_some() {
-                        self.entities.players[player_n as usize]
-                            .as_mut()
-                            .expect("Player should exist")
-                            .down();
+                    if movement_enabled {
+                        if let Some(player) = self.entities.players[player_n as usize].as_mut() {
+                            player.down();
+                        }
                     }
                 }
                 ControlEvent::Up(player_n) => {
-                    if movement_enabled && self.entities.players[player_n as usize].is_some() {
-                        self.entities.players[player_n as usize]
-                            .as_mut()
-                            .expect("Player should exist")
-                            .up();
+                    if movement_enabled {
+                        if let Some(player) = self.entities.players[player_n as usize].as_mut() {
+                            player.up();
+                        }
                     }
                 }
                 ControlEvent::Right(player_n) => {
-                    if movement_enabled && self.entities.players[player_n as usize].is_some() {
-                        self.entities.players[player_n as usize]
-                            .as_mut()
-                            .expect("Player should exist")
-                            .right();
+                    if movement_enabled {
+                        if let Some(player) = self.entities.players[player_n as usize].as_mut() {
+                            player.right();
+                        }
                     }
                 }
                 ControlEvent::Btn1(player_n) => {
-                    if movement_enabled && self.entities.players[player_n as usize].is_some() {
-                        self.entities.players[player_n as usize]
-                            .as_mut()
-                            .expect("Player should exist")
-                            .toggle_color();
+                    if movement_enabled {
+                        if let Some(player) = self.entities.players[player_n as usize].as_mut() {
+                            player.toggle_color();
+                        }
                     }
                     // New player joins!
                     if self.entities.players[player_n as usize].is_none() {
@@ -280,13 +282,9 @@ impl Game {
                                 + " joined!",
                         );
                         self.entities.players[player_n as usize] = Some(Player::new(player_n));
-                        let lives = self.entities.players[PlayerN::P1 as usize]
-                            .as_mut()
-                            .expect("Player 1 should always exist")
-                            .entity
-                            .life
-                            .borrow_mut();
-                        *lives += INIT_LIVES;
+                        if let Some(player) = self.entities.players[PlayerN::P1 as usize].as_mut() {
+                            player.entity.life += INIT_LIVES;
+                        }
                         effects::new_player();
                     }
                     continue_action = true;
@@ -347,8 +345,10 @@ impl Game {
     }
 
     /// Called at every frame. It's the beating heart of the game. It must call
-    /// self.timers.tick() exactly once before returning.
+    /// self.timers.tick() exactly once every time it's called. It's called at
+    /// 60fps and it returns early depending on the current screen.
     pub fn update(&mut self) {
+        self.timers.tick();
         self.environment
             .update(self.timers.frame_count, self.timers.song_tick);
         self.process_inputs();
@@ -356,36 +356,46 @@ impl Game {
         // First we show the title screen
         if self.flags.current_screen == ScreenName::Title {
             screen::title(self.timers.frame_count);
-            self.timers.tick();
             return;
         }
         // Then how to play
         if self.flags.current_screen == ScreenName::HowToPlay {
             screen::how_to_play(self.timers.frame_count);
-            self.timers.tick();
             return;
         }
 
         // When the game starts the HUD will be always visible
-        self.draw_hud();
+        draw_utils::draw_hud(
+            self.entities.players[PlayerN::P1 as usize]
+                .as_ref()
+                .expect("P1 should always exist")
+                .entity
+                .life,
+            self.scores.current,
+            self.scores.high,
+            self.scores.multiplier,
+            self.flags.current_screen != ScreenName::GameOver
+                || !self.flags.new_high_score
+                || self.flags.current_screen == ScreenName::GameOver
+                    && (self.timers.frame_count / 2) % 10 < 5,
+        );
+
         // Game over screen
         if self.flags.current_screen == ScreenName::GameOver {
             screen::game_over(self.timers.frame_count);
-            self.timers.tick();
             return;
         }
 
         // Stop-the-world death event
         if self.entities.killer.is_some() {
             self.death_tick();
-            self.timers.tick();
             return;
         }
 
         // End-game. Player ran out of lives, save high score and flag for game-over
         if self.entities.players[PlayerN::P1 as usize]
-            .as_mut()
-            .expect("Player should exist")
+            .as_ref()
+            .expect("P1 should always exist")
             .entity
             .life
             == 0
@@ -399,8 +409,6 @@ impl Game {
             // Save high score
             let high_score: u32 = self.scores.high;
             self.scores.save_high_score(high_score);
-
-            self.timers.tick();
             return;
         }
 
@@ -410,13 +418,9 @@ impl Game {
         self.update_score(enemies_killed, bombs_exploded);
 
         if self.entities.killer.is_some() {
-            let life = self.entities.players[PlayerN::P1 as usize]
-                .as_mut()
-                .expect("Player 1 should always exist")
-                .entity
-                .life
-                .borrow_mut();
-            *life = life.saturating_sub(1);
+            if let Some(player) = self.entities.players[PlayerN::P1 as usize].as_mut() {
+                player.entity.life = player.entity.life.saturating_sub(1);
+            }
         }
 
         self.spawn_enemies();
@@ -428,8 +432,6 @@ impl Game {
         // Print Statistics
         #[cfg(debug_assertions)]
         self.print_statistics();
-
-        self.timers.tick();
     }
 
     #[cfg(debug_assertions)]
@@ -468,13 +470,9 @@ impl Game {
     fn update_score(&mut self, enemies_killed: u32, bombs_exploded: u32) {
         self.scores.update(enemies_killed, bombs_exploded);
         if self.scores.current > self.calibrations.score_next_life {
-            let life = self.entities.players[PlayerN::P1 as usize]
-                .as_mut()
-                .expect("Player should exist")
-                .entity
-                .life
-                .borrow_mut();
-            *life = life.saturating_add(1);
+            if let Some(player) = self.entities.players[PlayerN::P1 as usize].as_mut() {
+                player.entity.life = player.entity.life.saturating_add(1);
+            }
             self.calibrations.score_next_life = self.calibrations.score_next_life.saturating_mul(2);
         }
     }
@@ -540,53 +538,6 @@ impl Game {
                     },
                     self.calibrations.enemy_color,
                 )),
-            );
-        }
-    }
-    fn draw_hud(&self) {
-        // Draws score, high-score, multiplier, player life count
-        palette::set_draw_color(0x12);
-        wasm4::text(self.scores.current.to_string(), 1, 1);
-        if self.flags.new_high_score
-            && self.flags.current_screen == ScreenName::GameOver
-            && (self.timers.frame_count / 2) % 10 < 5
-        {
-            palette::set_draw_color(0x00);
-        }
-        wasm4::text(
-            "H:".to_string() + self.scores.high.to_string().as_str(),
-            73,
-            1,
-        );
-        palette::set_draw_color(0x12);
-        wasm4::text(
-            "x".to_string() + self.scores.multiplier.to_string().as_str(),
-            1,
-            SCREEN_SIZE as i32 - 8,
-        );
-        // #[cfg(debug_assertions)]
-        // text(
-        //     "LVL:".to_string() + (self.calibrations.difficulty + 1).to_string().as_str(),
-        //     60,
-        //     SCREEN_SIZE as i32 - 8,
-        // );
-        palette::set_draw_color(0x20);
-        let h_start: i32 = SCREEN_SIZE as i32 - 9;
-
-        // Only Player 1 lives count, it owns the whole pool
-        for l in 0..self.entities.players[PlayerN::P1 as usize]
-            .as_ref()
-            .expect("Player should exist")
-            .entity
-            .life
-        {
-            wasm4::blit(
-                &HEART,
-                h_start - l as i32 * 8,
-                SCREEN_SIZE as i32 - 9,
-                8,
-                8,
-                BLIT_1BPP,
             );
         }
     }

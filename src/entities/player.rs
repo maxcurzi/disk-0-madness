@@ -4,8 +4,10 @@ use super::{
 };
 use crate::{
     common_types::Coord,
-    draw_utils,
-    palette::{self, DRAW_COLOR_A, DRAW_COLOR_B, DRAW_COLOR_PLAIN},
+    graphics::{
+        draw_utils,
+        palette::{self, DRAW_COLOR_A, DRAW_COLOR_B, DRAW_COLOR_PLAIN},
+    },
     wasm4::SCREEN_SIZE,
 };
 
