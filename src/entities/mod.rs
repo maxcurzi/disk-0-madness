@@ -1,6 +1,6 @@
 pub mod bomb;
 pub mod enemy;
-pub mod entity;
+mod entity;
 pub mod manager;
 pub mod player;
-pub(crate) mod traits;
+pub mod traits;

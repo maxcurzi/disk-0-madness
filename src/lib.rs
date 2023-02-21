@@ -6,11 +6,8 @@ mod graphics;
 mod wasm4;
 use lazy_static::lazy_static;
 use std::sync::Mutex;
-mod calibrations;
 mod common;
-mod controls;
 mod sound;
-
 lazy_static! {
     static ref PLAYER_GAME: Mutex<game::Game> = Mutex::new(game::Game::new());
 }

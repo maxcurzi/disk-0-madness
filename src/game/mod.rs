@@ -1,10 +1,21 @@
+mod controls;
+mod environment;
+mod flags;
+mod scores;
+mod timers;
+
+use controls::{ControlEvent, Controls};
+use environment::Environment;
+use flags::Flags;
+use scores::Scores;
+use timers::Timers;
+
 use crate::{
-    calibrations::{
+    common::calibrations::{
         Calibrations, BOMB_FRAME_FREQ, DEATH_COUNTDOWN_DURATION, DIFF_MUL_PROGRESSION, ENEMY_FRAME,
         EN_COL_FRAME, INIT_LIVES, MAX_BOMBS, MAX_ENEMIES, MUSIC_SPEED_CTRL, RESPITE_DURATION,
     },
     common::types::Coord,
-    controls::{ControlEvent, Controls},
     entities::{
         bomb::Bomb,
         enemy::Enemy,
@@ -14,171 +25,15 @@ use crate::{
     },
     graphics::{
         draw_utils::{self},
-        palette::{self, DRAW_COLOR_A, DRAW_COLOR_B},
+        palette::{DRAW_COLOR_A, DRAW_COLOR_B},
         screen::{self, ScreenName},
     },
     sound::{
         effects,
-        music::{self, GAME_OVER_SONG, GAME_SONG_START, INTRO_SONG, VOICE_NOTES},
+        music::{GAME_OVER_SONG, GAME_SONG_START, VOICE_NOTES},
     },
     wasm4::{self, SCREEN_SIZE},
 };
-use fastrand::Rng;
-use std::cmp::max;
-
-/// Counters to keep track of time in music and some events
-struct Timers {
-    // The main game counter is frame_count (the frame counter) used as "tick"
-    // in many operations, some timers are helpful to control the duration of
-    // the death animation, or the time without enemies when the player spawns.
-    //
-    // Song tick is mainly used to start the "game" and "game_over" songs on the
-    // first beat. The other main game song is composed of multiple "songs"
-    // which are switched depending on the level, but it should be perceived as
-    // a single song without beat changes. The synchronization is  handled in
-    // the song player
-    frame_count: usize,
-    death_countdown: usize,
-    respite: usize, // frames without enemies
-    song_tick: usize,
-}
-impl Timers {
-    fn new() -> Self {
-        Self {
-            frame_count: 0,
-            death_countdown: DEATH_COUNTDOWN_DURATION,
-            respite: RESPITE_DURATION,
-            song_tick: 0,
-        }
-    }
-
-    fn tick(&mut self) {
-        self.frame_count = self.frame_count.wrapping_add(1);
-        self.respite = self.respite.saturating_sub(1);
-        self.song_tick = self.song_tick.wrapping_add(1);
-    }
-}
-
-/// Score simply depends on enemies absorbed and bombs exploded. Each enemy/bomb
-/// gives an increasing amount of score, defined by the multiplier.
-struct Scores {
-    current: u32,
-    multiplier: u32,
-    high: u32,
-}
-impl Scores {
-    fn new() -> Self {
-        Self {
-            current: 0,
-            multiplier: 1,
-            high: Scores::get_high_score(),
-        }
-    }
-    fn get_high_score() -> u32 {
-        unsafe {
-            let mut buffer = [0u8; core::mem::size_of::<u32>()];
-            wasm4::diskr(buffer.as_mut_ptr(), buffer.len() as u32);
-            u32::from_le_bytes(buffer)
-        }
-    }
-    fn save_high_score(&self, high_score: u32) {
-        unsafe {
-            let high_score_bytes = high_score.to_le_bytes();
-            wasm4::diskw(
-                high_score_bytes.as_ptr(),
-                core::mem::size_of::<u32>() as u32,
-            );
-        }
-    }
-    /// Updates the player's score depening on how many enemies were killed and
-    /// bombs exploded in the current frame. Increase the multiplier every time
-    /// something happens. Bombs are worth a lot more.
-    fn update(&mut self, enemies_killed: u32, bombs_exploded: u32) {
-        for _ in 0..bombs_exploded {
-            self.current = self.current.wrapping_add(self.multiplier.wrapping_mul(10));
-            self.multiplier = self.multiplier.wrapping_add(10);
-        }
-        for _ in 0..enemies_killed {
-            self.current = self.current.wrapping_add(self.multiplier);
-            self.multiplier = self.multiplier.wrapping_add(1);
-        }
-        self.current = self.current.clamp(0, 999_999_999);
-    }
-}
-
-/// Flags are here used mainly to control which screen needs to be shown and
-/// little else. There's probably a simpler way of handling screens and
-/// transitions but given the game has a very linear structure the approach
-/// works fine.
-struct Flags {
-    current_screen: ScreenName,
-    new_high_score: bool,
-}
-impl Flags {
-    fn new() -> Self {
-        Self {
-            current_screen: ScreenName::Title,
-            new_high_score: false,
-        }
-    }
-}
-
-/// The Environment is responsible for drawing the play area (space), adjust
-/// palette colours, and play music and sound effects. The HUD (score,
-/// lives, etc..) is not part of the enviroment.
-struct Environment {
-    space: Vec<(u8, u8)>,
-    palette_n: u8,
-    song_nr: u8,
-}
-impl Environment {
-    fn new(rng: &Rng) -> Self {
-        const SPACE_PIXELS: u8 = 200;
-        let mut space = vec![];
-        for _ in 0..SPACE_PIXELS {
-            space.push((
-                rng.u8(0..(SCREEN_SIZE as u8)),
-                rng.u8(0..(SCREEN_SIZE as u8)),
-            ));
-        }
-        Self {
-            space,
-            palette_n: 0,
-            song_nr: INTRO_SONG,
-        }
-    }
-
-    fn draw_space(&self) {
-        palette::set_draw_color(0x44);
-        for p in &self.space {
-            draw_utils::pixel(p.0 as i32, p.1 as i32);
-        }
-    }
-
-    fn update(&self, _tick: usize, song_tick: usize) {
-        music::play(song_tick / MUSIC_SPEED_CTRL, self.song_nr);
-        self.draw_space();
-    }
-
-    fn play_sound_effects(&self, bombs_exploded: bool, extra_life: bool, player_died: bool) {
-        // We just have very few sound effects.
-        if bombs_exploded {
-            effects::bomb_explode();
-        }
-        if extra_life {
-            effects::extra_life();
-        }
-        if player_died {
-            effects::death();
-        }
-    }
-
-    fn set_palette(&mut self, palette_nr: u8) {
-        self.palette_n = palette_nr % palette::PALETTES.len() as u8;
-        palette::set_palette_n(self.palette_n as usize)
-    }
-}
-
 /// This is where everything comes together.
 pub struct Game {
     entities: Entities,
@@ -401,7 +256,7 @@ impl Game {
             == 0
         {
             self.flags.new_high_score = self.scores.current > self.scores.high;
-            self.scores.high = max(self.scores.current, self.scores.high);
+            self.scores.high = std::cmp::max(self.scores.current, self.scores.high);
             self.flags.current_screen = ScreenName::GameOver;
             self.environment.song_nr = GAME_OVER_SONG;
             self.timers.song_tick = 0;
@@ -481,7 +336,8 @@ impl Game {
         // Set difficulty. It simply depends on the current multiplier.
         for (i, mul) in DIFF_MUL_PROGRESSION.iter().enumerate() {
             if self.scores.multiplier < *mul {
-                self.calibrations.difficulty = max(i as u32, self.calibrations.difficulty);
+                self.calibrations.difficulty =
+                    std::cmp::max(i as u32, self.calibrations.difficulty);
                 break;
             }
         }

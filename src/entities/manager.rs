@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    calibrations::{INIT_LIVES, MAX_BOMBS, MAX_ENEMIES},
+    common::calibrations::{INIT_LIVES, MAX_BOMBS, MAX_ENEMIES},
     wasm4::SCREEN_SIZE,
 };
 
