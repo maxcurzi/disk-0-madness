@@ -1,7 +1,7 @@
 use crate::{
     bomb::Bomb,
+    common::{Coord, Visible},
     enemy::Enemy,
-    entity::{Coord, Visible},
     intro_screen::{INTRO_SCREEN, INTRO_SCREEN_FLAGS, INTRO_SCREEN_HEIGHT, INTRO_SCREEN_WIDTH},
     palette::{set_draw_color, COLOR1, COLOR2},
     player::{Player, PlayerN},
@@ -89,15 +89,29 @@ pub fn how_to_play(tick: usize) {
     text(" Avoid:", hoff, voff + 35);
     text("Absorb:", hoff, voff + 45);
     text("  Bomb:", hoff, voff + 55);
-    player.set_position(Coord {
+    player.entity.position = Coord {
         x: hoff as f64 + 59.0,
         y: voff as f64 + 25.0,
-    });
+    };
     player.draw();
 
-    let enemy = Enemy::new(0, hoff as f64 + 60.0, voff as f64 + 36.0, COLOR1);
+    let enemy = Enemy::new(
+        0,
+        Coord {
+            x: hoff as f64 + 60.0,
+            y: voff as f64 + 36.0,
+        },
+        COLOR1,
+    );
     enemy.draw();
-    let enemy = Enemy::new(0, hoff as f64 + 60.0, voff as f64 + 46.0, COLOR2);
+    let enemy = Enemy::new(
+        0,
+        Coord {
+            x: hoff as f64 + 60.0,
+            y: voff as f64 + 46.0,
+        },
+        COLOR2,
+    );
     enemy.draw();
     let bomb = Bomb::new(&Coord {
         x: hoff as f64 + 58.0,
@@ -131,22 +145,22 @@ pub fn how_to_play(tick: usize) {
         RMOUSE_ICON_HEIGHT,
         RMOUSE_ICON_FLAGS,
     );
-    player.set_position(Coord {
+    player.entity.position = Coord {
         x: hoff as f64 + 55.0,
         y: voff as f64 + 80.0,
-    });
+    };
     player.draw();
-    player.set_position(Coord {
+    player.entity.position = Coord {
         x: hoff as f64 + 80.0,
         y: voff as f64 + 80.0,
-    });
-    player.switch_color();
+    };
+    player.toggle_color();
     player.draw();
-    player.switch_color();
-    player.set_position(Coord {
+    player.toggle_color();
+    player.entity.position = Coord {
         x: hoff as f64 + 104.0,
         y: voff as f64 + 80.0,
-    });
+    };
     player.draw();
 
     // set_draw_color(0x12);

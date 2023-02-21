@@ -8,9 +8,9 @@ mod game;
 mod palette;
 mod player;
 mod wasm4;
-use game::Game;
 use lazy_static::lazy_static;
 use std::sync::Mutex;
+mod common;
 mod intro_screen;
 mod notes;
 mod screen;
@@ -18,7 +18,7 @@ mod sound;
 mod title_image;
 
 lazy_static! {
-    static ref PLAYER_GAME: Mutex<Game> = Mutex::new(Game::new());
+    static ref PLAYER_GAME: Mutex<game::Game> = Mutex::new(game::Game::new());
 }
 
 #[no_mangle]

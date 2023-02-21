@@ -1,22 +1,20 @@
-use std::borrow::BorrowMut;
-use std::cmp::max;
-use std::collections::HashMap;
-
-use crate::bomb::Bomb;
-use crate::draws;
-use crate::enemy::Enemy;
-use crate::entity::{Coord, Movable, Visible};
-use crate::palette::{self, COLOR1, COLOR2, HEART};
-use crate::player::{Player, PlayerN};
-use crate::screen::{self, ScreenName};
-use crate::sound::{self, GAME_OVER_SONG, GAME_SONG_START, INTRO_SONG, VOICE_NOTES};
-use crate::wasm4::{
-    blit, diskr, diskw, text, trace, BLIT_1BPP, BUTTON_1, BUTTON_2, BUTTON_DOWN, BUTTON_LEFT,
-    BUTTON_RIGHT, BUTTON_UP, GAMEPAD1, GAMEPAD2, GAMEPAD3, GAMEPAD4, MOUSE_BUTTONS, MOUSE_LEFT,
-    MOUSE_MIDDLE, MOUSE_RIGHT, MOUSE_X, MOUSE_Y, SCREEN_SIZE,
+use crate::{
+    bomb::Bomb,
+    common::{Coord, Movable, Visible},
+    draws,
+    enemy::Enemy,
+    palette::{self, COLOR1, COLOR2, HEART},
+    player::{Player, PlayerN},
+    screen::{self, ScreenName},
+    sound::{self, GAME_OVER_SONG, GAME_SONG_START, INTRO_SONG, VOICE_NOTES},
+    wasm4::{
+        self, BLIT_1BPP, BUTTON_1, BUTTON_2, BUTTON_DOWN, BUTTON_LEFT, BUTTON_RIGHT, BUTTON_UP,
+        GAMEPAD1, GAMEPAD2, GAMEPAD3, GAMEPAD4, MOUSE_BUTTONS, MOUSE_LEFT, MOUSE_MIDDLE,
+        MOUSE_RIGHT, MOUSE_X, MOUSE_Y, SCREEN_SIZE,
+    },
 };
-
 use fastrand::Rng;
+use std::{cmp::max, collections::HashMap};
 const RNG_SEED: u64 = 555;
 const MAX_ENEMIES: usize = 200;
 const MAX_BOMBS: usize = 16;
@@ -39,99 +37,81 @@ const DIFF_MUL_PROGRESSION: [u32; DIFFICULTY_LEVELS - 1] =
 /// Entities include the player, enemies and bombs
 struct Entities {
     players: [Option<Player>; 4],
-    bombs: HashMap<usize, Box<(Bomb, bool, usize)>>, // Indexed by ID. (Bomb instance, exploded  flag, id of who exploded it)
-    enemies: HashMap<usize, Box<Enemy>>,
-    killer: Option<Enemy>, // stores enemy that killed player
+    bombs: HashMap<usize, Bomb>,
+    enemies: HashMap<usize, Enemy>,
+    killer: Option<Enemy>,
 }
 
 impl Entities {
     fn new() -> Self {
         let mut player = Player::new(PlayerN::P1);
-        player.set_life(INIT_LIVES as u32);
+        player.entity.life = INIT_LIVES as u32;
         Self {
             players: [Some(player), None, None, None],
-            bombs: HashMap::with_capacity(MAX_BOMBS),
-            enemies: HashMap::with_capacity(MAX_ENEMIES),
+            bombs: HashMap::new(),   //(MAX_BOMBS),
+            enemies: HashMap::new(), //(MAX_ENEMIES),
             killer: None,
         }
     }
     fn update(&mut self) -> (u32, u32) {
-        self.update_position();
+        self.update_state();
+
         let (enemies_killed, bombs_exploded) = self.process_collisions();
         (enemies_killed, bombs_exploded)
     }
 
-    fn update_position(&mut self) {
+    fn update_state(&mut self) {
+        // Update players position
         for player in self.players.iter_mut() {
-            match player {
-                Some(p) => {
-                    p.update_position();
-                    p.stop();
-                }
-                None => (),
+            if let Some(player) = player {
+                player.update_position();
+                player.stop();
             }
         }
 
-        for (_, enemy) in self.enemies.iter_mut() {
-            let mut to_follow: &Player = self.players[0].as_ref().expect("Player should exist");
+        // Update enemy position
+        for enemy in self.enemies.values_mut() {
+            let mut to_follow = &self.players[PlayerN::P1 as usize];
 
             let mut temp_distance = (SCREEN_SIZE * 2) as f64;
-            for player in self.players.iter().flatten() {
-                let distance = enemy.get_super().distance(player);
-                if distance < temp_distance {
-                    temp_distance = distance;
-                    to_follow = player;
-                };
+            for player in self.players.iter() {
+                if let Some(p) = player {
+                    let distance = enemy.entity.distance(&p.entity);
+                    if distance < temp_distance {
+                        temp_distance = distance;
+                        to_follow = &player;
+                    };
+                }
             }
             enemy.follow(to_follow);
             enemy.update_position();
         }
 
-        for (_, bomb) in self.bombs.iter_mut() {
-            if bomb.1 {
-                bomb.0.grow();
-            }
+        // Update bombs
+        for bomb in self.bombs.values_mut() {
+            bomb.update();
         }
+
+        // Cleanup dead entities
         self.prune();
     }
 
     fn prune(&mut self) {
-        let mut enemies_to_delete: Vec<usize> = vec![];
-        for (&id, enemy) in self.enemies.iter_mut() {
-            if enemy.life() == 0 {
-                enemies_to_delete.push(id);
-            }
-        }
-        for td in enemies_to_delete {
-            self.enemies.remove(&td);
-        }
-
-        let mut bombs_to_delete: Vec<usize> = vec![];
-        for (&id, bomb) in self.bombs.iter_mut() {
-            if bomb.0.get_life() == 0 {
-                bombs_to_delete.push(id);
-            }
-        }
-        for td in bombs_to_delete {
-            self.bombs.remove(&td);
-        }
+        self.enemies.retain(|_, enemy| enemy.entity.life > 0);
+        self.bombs.retain(|_, bomb| bomb.entity.life > 0);
     }
 
     fn draw(&self) {
-        // Draw player before the enemies so in case of overlap it looks more
+        // Draw players before enemies so in case they overlap it would look more
         // "squishy" when escaping. Bombs should cover enemies so are drawn last.
-        for player in &self.players {
-            if player.is_some() {
-                player.as_ref().expect("Player should exist").draw();
-            }
+        for p in self.players.iter().flatten() {
+            p.draw();
         }
-
-        for enemy in self.enemies.values() {
-            enemy.draw();
+        for e in self.enemies.values() {
+            e.draw();
         }
-
-        for bomb in self.bombs.values() {
-            bomb.0.draw();
+        for b in self.bombs.values() {
+            b.draw();
         }
     }
 
@@ -141,79 +121,63 @@ impl Entities {
         let mut bombs_exploded = 0;
 
         // Player-Bomb collision
-        'bombs_loop: for (_id, boxed_bomb) in self.bombs.iter_mut() {
-            let bomb = &boxed_bomb.0;
-            let exploded = &mut boxed_bomb.1;
-            let who_exploded_it = boxed_bomb.2.borrow_mut();
-            #[allow(unused_labels)]
-            'players_loop: for player in &self.players {
-                if player.is_some()
-                    && bomb
-                        .get_super()
-                        .collided_with(player.as_ref().expect("Player should exist"), 2.0)
-                    && !*exploded
-                {
-                    bombs_exploded += 1;
-                    *exploded = true;
-                    *who_exploded_it = player.as_ref().expect("Player should exist").get_id();
-                    continue 'bombs_loop;
+        'bombs_loop: for bomb in self.bombs.values_mut() {
+            for player in &self.players {
+                if let Some(player) = player {
+                    let extra_reach = 2.0; // Makes bombs easier to trigger
+                    if bomb.entity.collided_with(&player.entity, extra_reach) && !bomb.exploded {
+                        bombs_exploded += 1;
+                        bomb.exploded = true;
+                        bomb.who_exploded = Some(player.player_number);
+                        continue 'bombs_loop;
+                    }
                 }
             }
         }
 
-        'enemies_loop: for (_id, enemy) in self.enemies.iter_mut() {
-            // Bomb-Enemy collision
-            'bombs_loop: for boxed_bomb in self.bombs.values() {
-                let bomb = &boxed_bomb.0;
-                let exploded = boxed_bomb.1;
-                let who_exploded_it = boxed_bomb.2;
+        'enemies_loop: for enemy in self.enemies.values_mut() {
+            // Bomb-Enemy collision, convert enemies to player color
+            'bombs_loop: for bomb in self.bombs.values_mut() {
                 let extra_reach = 2.0; // Makes enemies easier to convert
-                if exploded && bomb.get_super().collided_with(enemy.as_ref(), extra_reach) {
-                    enemy.set_color(
-                        self.players[who_exploded_it]
-                            .as_ref()
-                            .expect("An exploded bomb should have a owner")
-                            .get_color(),
-                    );
+                if bomb.exploded && bomb.entity.collided_with(&enemy.entity, extra_reach) {
+                    enemy.entity.color = self.players[bomb
+                        .who_exploded
+                        .expect("Exploded bomb should have a 'owner'")
+                        as usize]
+                        .as_ref()
+                        .expect("Player should still be alive")
+                        .entity
+                        .color;
                     break 'bombs_loop; // One exploded bomb <=> One player
                 }
             }
 
             // Enemy-Player collision (same color)
             'players_loop: for player in &self.players {
-                if player.is_some()
-                    && enemy.get_color()
-                        == player.as_ref().expect("Player should exist").get_color()
-                    && enemy
-                        .get_super()
-                        .collided_with(player.as_ref().expect("Player should exist"), 2.0)
-                {
-                    enemy.kill();
-                    enemies_killed += 1;
-                    break 'players_loop; // Only one player should be able to "eat" one enemy
+                if let Some(player) = player {
+                    if enemy.entity.color == player.entity.color
+                        && enemy.entity.collided_with(&player.entity, 2.0)
+                    {
+                        enemy.kill();
+                        enemies_killed += 1;
+                        break 'players_loop; // Only one player should be able to "eat" one enemy
+                    }
                 }
             }
 
             // Enemy-Player collision (different colors)
             #[allow(unused_labels)]
             'players_loop: for player in &self.players {
-                if player.is_some()
-                    && enemy.get_color()
-                        != player.as_ref().expect("Player should exist").get_color()
-                    && !enemy.just_spawned()
-                    && enemy
-                        .get_super()
-                        .collided_with(player.as_ref().expect("Player should exist"), -2.0)
-                {
-                    // Player dies
-                    self.killer = Some(Enemy::new(
-                        player.as_ref().expect("Player should exist").get_id(),
-                        enemy.get_position().x,
-                        enemy.get_position().y,
-                        enemy.get_color(),
-                    ));
-                    enemy.kill();
-                    break 'enemies_loop; // Stop everything.
+                if let Some(player) = player {
+                    if enemy.entity.color != player.entity.color
+                        && !enemy.just_spawned()
+                        && enemy.entity.collided_with(&player.entity, -2.0)
+                    {
+                        // Player dies
+                        self.killer = Some(enemy.clone());
+                        enemy.kill();
+                        break 'enemies_loop; // Stop everything.
+                    }
                 }
             }
         }
@@ -289,7 +253,7 @@ impl Scores {
         let high_score = unsafe {
             let mut buffer = [0u8; core::mem::size_of::<u32>()];
 
-            diskr(buffer.as_mut_ptr(), buffer.len() as u32);
+            wasm4::diskr(buffer.as_mut_ptr(), buffer.len() as u32);
 
             u32::from_le_bytes(buffer)
         };
@@ -569,11 +533,12 @@ impl Game {
         self.scores = Scores::new();
         self.flags = Flags::new();
         self.flags.current_screen = ScreenName::MainGame;
-        if self.entities.players[0].is_some() {
-            self.entities.players[0]
+        if self.entities.players[PlayerN::P1 as usize].is_some() {
+            self.entities.players[PlayerN::P1 as usize]
                 .as_mut()
                 .expect("Player should exist")
-                .set_life(INIT_LIVES as u32);
+                .entity
+                .life = INIT_LIVES as u32;
         }
     }
 
@@ -622,11 +587,11 @@ impl Game {
                         self.entities.players[player_n as usize]
                             .as_mut()
                             .expect("Player should exist")
-                            .switch_color();
+                            .toggle_color();
                     }
                     // New player joins!
                     if self.entities.players[player_n as usize].is_none() {
-                        trace(
+                        wasm4::trace(
                             "Player ".to_owned()
                                 + (player_n as u8 + 1).to_string().as_str()
                                 + " joined!",
@@ -634,19 +599,21 @@ impl Game {
                         self.entities.players[player_n as usize] = Some(Player::new(player_n));
                         let lives = self.entities.players[PlayerN::P1 as usize]
                             .as_ref()
-                            .expect("Player 1 should exist")
-                            .get_life();
+                            .expect("Player 1 should always exist")
+                            .entity
+                            .life;
                         self.entities.players[PlayerN::P1 as usize]
                             .as_mut()
-                            .expect("Player 1 should exist")
-                            .set_life(lives + INIT_LIVES as u32);
+                            .expect("Player 1 should always exist")
+                            .entity
+                            .life = lives + INIT_LIVES as u32;
                         sound::new_player();
                     }
                     continue_action = true;
                 }
 
                 ControlEvent::Btn2(player_n) => {
-                    trace(
+                    wasm4::trace(
                         "Player ".to_owned()
                             + (player_n as u8 + 1).to_string().as_str()
                             + " changed palette!",
@@ -656,10 +623,9 @@ impl Game {
 
                 ControlEvent::MouseRightClick => {
                     if movement_enabled {
-                        self.entities.players[PlayerN::P1 as usize]
-                            .as_mut()
-                            .expect("Player 1 should exist")
-                            .switch_color();
+                        if let Some(player) = self.entities.players[PlayerN::P1 as usize].as_mut() {
+                            player.toggle_color();
+                        }
                     }
                 }
                 ControlEvent::MouseLeftClick => {
@@ -670,20 +636,19 @@ impl Game {
                 }
                 ControlEvent::MouseLeftHold((mouse_x, mouse_y)) => {
                     if movement_enabled {
-                        let player = self.entities.players[PlayerN::P1 as usize]
-                            .as_mut()
-                            .expect("Player 1 should exist");
-                        let new_d_x = mouse_x as f64
-                            - player.get_position().x
-                            - player.get_size() as f64 / 2.0;
-                        let new_d_y = mouse_y as f64
-                            - player.get_position().y
-                            - player.get_size() as f64 / 2.0;
-                        if new_d_x.abs() > 1.0 || new_d_y.abs() > 1.0 {
-                            player.set_direction(Coord {
-                                x: new_d_x,
-                                y: new_d_y,
-                            })
+                        if let Some(player) = self.entities.players[PlayerN::P1 as usize].as_mut() {
+                            let new_d_x = mouse_x as f64
+                                - player.entity.position.x
+                                - player.entity.size as f64 / 2.0;
+                            let new_d_y = mouse_y as f64
+                                - player.entity.position.y
+                                - player.entity.size as f64 / 2.0;
+                            if new_d_x.abs() > 1.0 || new_d_y.abs() > 1.0 {
+                                player.entity.direction = Coord {
+                                    x: new_d_x,
+                                    y: new_d_y,
+                                };
+                            }
                         }
                     }
                 }
@@ -738,10 +703,11 @@ impl Game {
         }
 
         // End-game. Player ran out of lives, save high score and flag for game-over
-        if self.entities.players[0]
+        if self.entities.players[PlayerN::P1 as usize]
             .as_mut()
             .expect("Player should exist")
-            .get_life()
+            .entity
+            .life
             == 0
         {
             self.flags.new_high_score = self.scores.current > self.scores.high;
@@ -754,7 +720,7 @@ impl Game {
             let game_data: u32 = self.scores.high;
             unsafe {
                 let game_data_bytes = game_data.to_le_bytes();
-                diskw(game_data_bytes.as_ptr(), core::mem::size_of::<u32>() as u32);
+                wasm4::diskw(game_data_bytes.as_ptr(), core::mem::size_of::<u32>() as u32);
             }
             self.timers.tick();
             return;
@@ -766,15 +732,17 @@ impl Game {
         self.update_score(enemies_killed, bombs_exploded);
 
         if self.entities.killer.is_some() {
-            let life = self.entities.players[0]
+            let life = self.entities.players[PlayerN::P1 as usize]
                 .as_ref()
-                .expect("Player should exist")
-                .get_life();
+                .expect("Player 1 should always exist")
+                .entity
+                .life;
 
-            self.entities.players[0]
+            self.entities.players[PlayerN::P1 as usize]
                 .as_mut()
-                .expect("Player should exist")
-                .set_life(life.saturating_sub(1));
+                .expect("Player 1 should always exist")
+                .entity
+                .life = life.saturating_sub(1);
         }
 
         self.spawn_enemies();
@@ -792,8 +760,6 @@ impl Game {
 
     #[cfg(debug_assertions)]
     fn print_statistics(&mut self) {
-        use crate::wasm4;
-
         if self.timers.frame_count % 60 == 0 {
             wasm4::trace(
                 "Enemies:".to_owned()
@@ -828,14 +794,16 @@ impl Game {
     fn update_score(&mut self, enemies_killed: u32, bombs_exploded: u32) {
         self.scores.update(enemies_killed, bombs_exploded);
         if self.scores.current > self.calibrations.score_next_life {
-            let life = self.entities.players[0]
+            let life = self.entities.players[PlayerN::P1 as usize]
                 .as_ref()
                 .expect("Player should exist")
-                .get_life();
-            self.entities.players[0]
+                .entity
+                .life;
+            self.entities.players[PlayerN::P1 as usize]
                 .as_mut()
                 .expect("Player should exist")
-                .set_life(life.saturating_add(1));
+                .entity
+                .life = life.saturating_add(1);
             self.calibrations.score_next_life = self.calibrations.score_next_life.saturating_mul(2);
         }
     }
@@ -855,14 +823,10 @@ impl Game {
         if self.timers.frame_count % BOMB_FRAME_FREQ == 0 && self.entities.bombs.len() < MAX_BOMBS {
             self.entities.bombs.insert(
                 self.timers.frame_count,
-                Box::new((
-                    Bomb::new(&Coord {
-                        x: self.calibrations.rng.f64() * (SCREEN_SIZE - 20) as f64 + 10.0,
-                        y: self.calibrations.rng.f64() * (SCREEN_SIZE - 20) as f64 + 10.0,
-                    }),
-                    false,
-                    0,
-                )),
+                Bomb::new(&Coord {
+                    x: self.calibrations.rng.f64() * (SCREEN_SIZE - 20) as f64 + 10.0,
+                    y: self.calibrations.rng.f64() * (SCREEN_SIZE - 20) as f64 + 10.0,
+                }),
             );
         }
     }
@@ -872,17 +836,15 @@ impl Game {
         if self.timers.frame_count % EN_COL_FRAME[self.calibrations.difficulty as usize] as usize
             == 0
         {
-            self.calibrations.enemy_color = if self.calibrations.enemy_color == COLOR2 {
-                COLOR1
-            } else {
-                COLOR2
-            }
+            self.calibrations.enemy_color = match self.calibrations.enemy_color {
+                COLOR1 => COLOR2,
+                COLOR2 => COLOR1,
+                _ => panic!("Invalid enemy color"),
+            };
         }
         // We only spawn a maximum of 1 enemy per frame, at an interval decided
         // by ENEMY_FRAME. It works fine and even at 1 enemy per frame (60
-        // enemies per second) the pressure is high. Consider adjusting to spawn
-        // multiple enemies per frame which may be more visually pleasing.
-        //
+        // enemies per second) the pressure is high.
         // Enemies are randomly spawned at 8 fixed locations (corners and mid-edges)
         if self.timers.frame_count % ENEMY_FRAME[self.calibrations.difficulty as usize] as usize
             == 0
@@ -903,32 +865,34 @@ impl Game {
 
             self.entities.enemies.insert(
                 self.timers.frame_count,
-                Box::new(Enemy::new(
+                Enemy::new(
                     self.timers.frame_count,
-                    pos.0 as f64,
-                    pos.1 as f64,
+                    Coord {
+                        x: pos.0 as f64,
+                        y: pos.1 as f64,
+                    },
                     self.calibrations.enemy_color,
-                )),
+                ),
             );
         }
     }
     fn draw_hud(&self) {
         // Draws score, high-score, multiplier, player life count
         palette::set_draw_color(0x12);
-        text(self.scores.current.to_string(), 1, 1);
+        wasm4::text(self.scores.current.to_string(), 1, 1);
         if self.flags.new_high_score
             && self.flags.current_screen == ScreenName::GameOver
             && (self.timers.frame_count / 2) % 10 < 5
         {
             palette::set_draw_color(0x00);
         }
-        text(
+        wasm4::text(
             "H:".to_string() + self.scores.high.to_string().as_str(),
             73,
             1,
         );
         palette::set_draw_color(0x12);
-        text(
+        wasm4::text(
             "x".to_string() + self.scores.multiplier.to_string().as_str(),
             1,
             SCREEN_SIZE as i32 - 8,
@@ -943,12 +907,13 @@ impl Game {
         let h_start: i32 = SCREEN_SIZE as i32 - 9;
 
         // Only Player 1 lives count, it owns the whole pool
-        for l in 0..self.entities.players[0]
+        for l in 0..self.entities.players[PlayerN::P1 as usize]
             .as_ref()
             .expect("Player should exist")
-            .get_life()
+            .entity
+            .life
         {
-            blit(
+            wasm4::blit(
                 &HEART,
                 h_start - l as i32 * 8,
                 SCREEN_SIZE as i32 - 9,
