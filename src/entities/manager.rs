@@ -16,8 +16,8 @@ use super::{
 pub struct EntityManager {
     pub players: [Option<Player>; 4],
     pub life_counter: u32,
-    pub bombs: HashMap<usize, Bomb>,
-    pub enemies: HashMap<usize, Enemy>,
+    pub bombs: HashMap<usize, Box<Bomb>>,
+    pub enemies: HashMap<usize, Box<Enemy>>,
     pub killer: Option<Enemy>,
 }
 impl EntityManager {

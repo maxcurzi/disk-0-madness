@@ -189,7 +189,7 @@ pub struct Game {
 }
 impl Game {
     pub fn new() -> Self {
-        let entities = Entities::new();
+        let mut entities = Entities::new();
         let timers = Timers::new();
         let calibrations = Calibrations::new(0);
         let scores = Scores::new();
@@ -494,10 +494,10 @@ impl Game {
         if self.timers.frame_count % BOMB_FRAME_FREQ == 0 && self.entities.bombs.len() < MAX_BOMBS {
             self.entities.bombs.insert(
                 self.timers.frame_count,
-                Bomb::new(&Coord {
+                Box::new(Bomb::new(&Coord {
                     x: self.calibrations.rng.f64() * (SCREEN_SIZE - 20) as f64 + 10.0,
                     y: self.calibrations.rng.f64() * (SCREEN_SIZE - 20) as f64 + 10.0,
-                }),
+                })),
             );
         }
     }
@@ -532,14 +532,14 @@ impl Game {
 
             self.entities.enemies.insert(
                 self.timers.frame_count,
-                Enemy::new(
+                Box::new(Enemy::new(
                     self.timers.frame_count,
                     Coord {
                         x: pos.0 as f64,
                         y: pos.1 as f64,
                     },
                     self.calibrations.enemy_color,
-                ),
+                )),
             );
         }
     }

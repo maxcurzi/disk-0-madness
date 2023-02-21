@@ -3,7 +3,7 @@ use fastrand::Rng;
 use crate::palette::DRAW_COLOR_B;
 
 pub const RNG_SEED: u64 = 555;
-pub const MAX_ENEMIES: usize = 50;
+pub const MAX_ENEMIES: usize = 250;
 pub const MAX_BOMBS: usize = 16;
 pub const INIT_LIVES: u32 = 3;
 pub const INIT_DIFFICULTY: u32 = 9;
