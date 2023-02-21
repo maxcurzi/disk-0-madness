@@ -3,7 +3,7 @@ use crate::{
     common::{Coord, Movable, Visible},
     draws,
     enemy::Enemy,
-    palette::{self, COLOR1, COLOR2, HEART},
+    palette::{self, DRAW_COLOR_A, DRAW_COLOR_B, HEART},
     player::{Player, PlayerN},
     screen::{self, ScreenName},
     sound::{self, GAME_OVER_SONG, GAME_SONG_START, INTRO_SONG, VOICE_NOTES},
@@ -41,7 +41,6 @@ struct Entities {
     enemies: HashMap<usize, Enemy>,
     killer: Option<Enemy>,
 }
-
 impl Entities {
     fn new() -> Self {
         let mut player = Player::new(PlayerN::P1);
@@ -62,11 +61,9 @@ impl Entities {
 
     fn update_state(&mut self) {
         // Update players position
-        for player in self.players.iter_mut() {
-            if let Some(player) = player {
-                player.update_position();
-                player.stop();
-            }
+        for player in self.players.iter_mut().flatten() {
+            player.update_position();
+            player.stop();
         }
 
         // Update enemy position
@@ -79,7 +76,7 @@ impl Entities {
                     let distance = enemy.entity.distance(&p.entity);
                     if distance < temp_distance {
                         temp_distance = distance;
-                        to_follow = &player;
+                        to_follow = player;
                     };
                 }
             }
@@ -122,15 +119,13 @@ impl Entities {
 
         // Player-Bomb collision
         'bombs_loop: for bomb in self.bombs.values_mut() {
-            for player in &self.players {
-                if let Some(player) = player {
-                    let extra_reach = 2.0; // Makes bombs easier to trigger
-                    if bomb.entity.collided_with(&player.entity, extra_reach) && !bomb.exploded {
-                        bombs_exploded += 1;
-                        bomb.exploded = true;
-                        bomb.who_exploded = Some(player.player_number);
-                        continue 'bombs_loop;
-                    }
+            for player in self.players.iter().flatten() {
+                let extra_reach = 2.0; // Makes bombs easier to trigger
+                if bomb.entity.collided_with(&player.entity, extra_reach) && !bomb.exploded {
+                    bombs_exploded += 1;
+                    bomb.exploded = true;
+                    bomb.who_exploded = Some(player.player_number);
+                    continue 'bombs_loop;
                 }
             }
         }
@@ -153,31 +148,27 @@ impl Entities {
             }
 
             // Enemy-Player collision (same color)
-            'players_loop: for player in &self.players {
-                if let Some(player) = player {
-                    if enemy.entity.color == player.entity.color
-                        && enemy.entity.collided_with(&player.entity, 2.0)
-                    {
-                        enemy.kill();
-                        enemies_killed += 1;
-                        break 'players_loop; // Only one player should be able to "eat" one enemy
-                    }
+            'players_loop: for player in self.players.iter().flatten() {
+                if enemy.entity.color == player.entity.color
+                    && enemy.entity.collided_with(&player.entity, 2.0)
+                {
+                    enemy.kill();
+                    enemies_killed += 1;
+                    break 'players_loop; // Only one player should be able to "eat" one enemy
                 }
             }
 
             // Enemy-Player collision (different colors)
             #[allow(unused_labels)]
-            'players_loop: for player in &self.players {
-                if let Some(player) = player {
-                    if enemy.entity.color != player.entity.color
-                        && !enemy.just_spawned()
-                        && enemy.entity.collided_with(&player.entity, -2.0)
-                    {
-                        // Player dies
-                        self.killer = Some(enemy.clone());
-                        enemy.kill();
-                        break 'enemies_loop; // Stop everything.
-                    }
+            'players_loop: for player in self.players.iter().flatten() {
+                if enemy.entity.color != player.entity.color
+                    && !enemy.just_spawned()
+                    && enemy.entity.collided_with(&player.entity, -2.0)
+                {
+                    // Player dies
+                    self.killer = Some(enemy.clone());
+                    enemy.kill();
+                    break 'enemies_loop; // Stop everything.
                 }
             }
         }
@@ -229,14 +220,13 @@ struct Calibrations {
     rng: Rng,
     enemy_color: u16,
 }
-
 impl Calibrations {
     fn new(tick_for_extra_rng: usize) -> Self {
         Self {
             difficulty: INIT_DIFFICULTY,
             score_next_life: NEXT_LIFE_SCORE,
             rng: Rng::with_seed(RNG_SEED + tick_for_extra_rng as u64),
-            enemy_color: COLOR2,
+            enemy_color: DRAW_COLOR_B,
         }
     }
 }
@@ -250,21 +240,28 @@ struct Scores {
 }
 impl Scores {
     fn new() -> Self {
-        let high_score = unsafe {
-            let mut buffer = [0u8; core::mem::size_of::<u32>()];
-
-            wasm4::diskr(buffer.as_mut_ptr(), buffer.len() as u32);
-
-            u32::from_le_bytes(buffer)
-        };
-
         Self {
             current: 0,
             multiplier: 1,
-            high: high_score,
+            high: Scores::get_high_score(),
         }
     }
-
+    fn get_high_score() -> u32 {
+        unsafe {
+            let mut buffer = [0u8; core::mem::size_of::<u32>()];
+            wasm4::diskr(buffer.as_mut_ptr(), buffer.len() as u32);
+            u32::from_le_bytes(buffer)
+        }
+    }
+    fn save_high_score(&self, high_score: u32) {
+        unsafe {
+            let high_score_bytes = high_score.to_le_bytes();
+            wasm4::diskw(
+                high_score_bytes.as_ptr(),
+                core::mem::size_of::<u32>() as u32,
+            );
+        }
+    }
     /// Updates the player's score depening on how many enemies were killed and
     /// bombs exploded in the current frame. Increase the multiplier every time
     /// something happens. Bombs are worth a lot more.
@@ -331,7 +328,7 @@ impl Environment {
     }
 
     fn update(&mut self, _tick: usize, song_tick: usize) {
-        sound::play_music(song_tick / MUSIC_SPEED_CTRL as usize, self.song_nr);
+        sound::play_music(song_tick / MUSIC_SPEED_CTRL, self.song_nr);
         self.draw_space();
     }
 
@@ -354,15 +351,6 @@ impl Environment {
     }
 }
 
-/// Handles user actions (mainly keyboard and mouse actions)
-struct Controls {
-    prev_mouse: u8,
-    prev_gamepad1: u8,
-    prev_gamepad2: u8,
-    prev_gamepad3: u8,
-    prev_gamepad4: u8,
-}
-
 enum ControlEvent {
     MouseLeftHold((i16, i16)),
     MouseLeftClick,
@@ -374,6 +362,14 @@ enum ControlEvent {
     Right(PlayerN),
     Btn1(PlayerN),
     Btn2(PlayerN),
+}
+/// Handles user actions (mainly keyboard and mouse actions)
+struct Controls {
+    prev_mouse: u8,
+    prev_gamepad1: u8,
+    prev_gamepad2: u8,
+    prev_gamepad3: u8,
+    prev_gamepad4: u8,
 }
 impl Controls {
     const MOUSE_AREA_PADDING: i16 = 20; // Extra space around play area to allow mouse events.
@@ -410,9 +406,8 @@ impl Controls {
         if mouse & MOUSE_LEFT != 0
             && self.mouse_in_play_area_within_padding(Self::MOUSE_AREA_PADDING)
         {
-            let mouse_x = unsafe { *MOUSE_X };
-            let mouse_y = unsafe { *MOUSE_Y };
-            event.push(ControlEvent::MouseLeftHold((mouse_x, mouse_y)));
+            let mouse_pos = self.get_mouse_pos();
+            event.push(ControlEvent::MouseLeftHold(mouse_pos));
         }
         if just_pressed_mouse & MOUSE_RIGHT != 0
             && self.mouse_in_play_area_within_padding(Self::MOUSE_AREA_PADDING)
@@ -481,12 +476,15 @@ impl Controls {
     /// frustrating to lose control of the disk and die if your mouse pointer
     /// was ever so slighty outside!
     fn mouse_in_play_area_within_padding(&self, padding: i16) -> bool {
-        let mouse_x = unsafe { *MOUSE_X };
-        let mouse_y = unsafe { *MOUSE_Y };
-        mouse_x >= -padding
-            && mouse_x <= SCREEN_SIZE as i16 + padding
-            && mouse_y >= -padding
-            && mouse_y <= SCREEN_SIZE as i16 + padding
+        let mouse_pos = self.get_mouse_pos();
+        mouse_pos.0 >= -padding
+            && mouse_pos.0 <= SCREEN_SIZE as i16 + padding
+            && mouse_pos.1 >= -padding
+            && mouse_pos.1 <= SCREEN_SIZE as i16 + padding
+    }
+
+    fn get_mouse_pos(&self) -> (i16, i16) {
+        unsafe { (*MOUSE_X, *MOUSE_Y) }
     }
 }
 
@@ -500,7 +498,6 @@ pub struct Game {
     environment: Environment,
     controls: Controls,
 }
-
 impl Game {
     pub fn new() -> Self {
         let entities = Entities::new();
@@ -639,10 +636,10 @@ impl Game {
                         if let Some(player) = self.entities.players[PlayerN::P1 as usize].as_mut() {
                             let new_d_x = mouse_x as f64
                                 - player.entity.position.x
-                                - player.entity.size as f64 / 2.0;
+                                - player.entity.size / 2.0;
                             let new_d_y = mouse_y as f64
                                 - player.entity.position.y
-                                - player.entity.size as f64 / 2.0;
+                                - player.entity.size / 2.0;
                             if new_d_x.abs() > 1.0 || new_d_y.abs() > 1.0 {
                                 player.entity.direction = Coord {
                                     x: new_d_x,
@@ -713,15 +710,13 @@ impl Game {
             self.flags.new_high_score = self.scores.current > self.scores.high;
             self.scores.high = max(self.scores.current, self.scores.high);
             self.flags.current_screen = ScreenName::GameOver;
-            self.environment.song_nr = GAME_OVER_SONG as u8;
+            self.environment.song_nr = GAME_OVER_SONG;
             self.timers.song_tick = 0;
 
             // Save high score
-            let game_data: u32 = self.scores.high;
-            unsafe {
-                let game_data_bytes = game_data.to_le_bytes();
-                wasm4::diskw(game_data_bytes.as_ptr(), core::mem::size_of::<u32>() as u32);
-            }
+            let high_score: u32 = self.scores.high;
+            self.scores.save_high_score(high_score);
+
             self.timers.tick();
             return;
         }
@@ -833,12 +828,10 @@ impl Game {
     fn spawn_enemies(&mut self) {
         // Enemy color depends on time, so we can have nice sections of enemies
         // with same colour, while keeping some element of randomness (their position).
-        if self.timers.frame_count % EN_COL_FRAME[self.calibrations.difficulty as usize] as usize
-            == 0
-        {
+        if self.timers.frame_count % EN_COL_FRAME[self.calibrations.difficulty as usize] == 0 {
             self.calibrations.enemy_color = match self.calibrations.enemy_color {
-                COLOR1 => COLOR2,
-                COLOR2 => COLOR1,
+                DRAW_COLOR_A => DRAW_COLOR_B,
+                DRAW_COLOR_B => DRAW_COLOR_A,
                 _ => panic!("Invalid enemy color"),
             };
         }
@@ -846,8 +839,7 @@ impl Game {
         // by ENEMY_FRAME. It works fine and even at 1 enemy per frame (60
         // enemies per second) the pressure is high.
         // Enemies are randomly spawned at 8 fixed locations (corners and mid-edges)
-        if self.timers.frame_count % ENEMY_FRAME[self.calibrations.difficulty as usize] as usize
-            == 0
+        if self.timers.frame_count % ENEMY_FRAME[self.calibrations.difficulty as usize] == 0
             && self.entities.enemies.len() < MAX_ENEMIES
             && self.timers.respite == 0
         {

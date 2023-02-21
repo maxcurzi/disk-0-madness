@@ -1,7 +1,7 @@
 use crate::{
     common::{Coord, Visible},
     entity::Entity,
-    palette::COLOR_BOMB,
+    palette::DRAW_COLOR_BOMB,
     player::PlayerN,
     wasm4::SCREEN_SIZE,
 };
@@ -30,8 +30,8 @@ impl Bomb {
     fn grow(&mut self) {
         let grow_amt = self.growth_rate;
         self.entity.size = (self.entity.size + grow_amt).clamp(2.0, SCREEN_SIZE as f64);
-        self.entity.position.x -= (grow_amt as f64) / 2.0;
-        self.entity.position.y -= (grow_amt as f64) / 2.0;
+        self.entity.position.x -= grow_amt / 2.0;
+        self.entity.position.y -= grow_amt / 2.0;
         self.entity.life -= 1;
     }
 }
@@ -46,8 +46,8 @@ impl Default for Bomb {
                 direction: Coord::default(),
                 size: DEFAULT_SIZE,
                 speed: 0.0,
-                id: 0,
-                color: COLOR_BOMB,
+                // id: 0,
+                color: DRAW_COLOR_BOMB,
                 life: DEFAULT_LIFE_SPAN,
             },
             growth_rate: DEFAULT_GROWTH_RATE,

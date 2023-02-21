@@ -3,18 +3,18 @@ use crate::{
     common::{Coord, Visible},
     enemy::Enemy,
     intro_screen::{INTRO_SCREEN, INTRO_SCREEN_FLAGS, INTRO_SCREEN_HEIGHT, INTRO_SCREEN_WIDTH},
-    palette::{set_draw_color, COLOR1, COLOR2},
+    palette::{self, DRAW_COLOR_A, DRAW_COLOR_B},
     player::{Player, PlayerN},
     title_image::{TITLE1, TITLE1_FLAGS, TITLE1_HEIGHT, TITLE1_WIDTH},
-    wasm4::{blit, rect, text, DRAW_COLORS, SCREEN_SIZE},
+    wasm4::{self, SCREEN_SIZE},
 };
 
-const X_ICON: &str = unsafe { std::str::from_utf8_unchecked(&[0x80]) };
-const Z_ICON: &str = unsafe { std::str::from_utf8_unchecked(&[0x81]) };
-const LEFT_ICON: &str = unsafe { std::str::from_utf8_unchecked(&[0x84]) };
-const RIGHT_ICON: &str = unsafe { std::str::from_utf8_unchecked(&[0x85]) };
-const UP_ICON: &str = unsafe { std::str::from_utf8_unchecked(&[0x86]) };
-const DOWN_ICON: &str = unsafe { std::str::from_utf8_unchecked(&[0x87]) };
+const X_ICON: &[u8] = b"\x80";
+const Z_ICON: &[u8] = b"\x81";
+const LEFT_ICON: &[u8] = b"\x84";
+const RIGHT_ICON: &[u8] = b"\x85";
+const UP_ICON: &[u8] = b"\x86";
+const DOWN_ICON: &[u8] = b"\x87";
 
 // Lmouse_icon
 const LMOUSE_ICON_WIDTH: u32 = 8;
@@ -49,8 +49,8 @@ pub enum ScreenName {
 }
 
 pub fn title(tick: usize) {
-    unsafe { *DRAW_COLORS = 0x1234 };
-    blit(
+    palette::set_draw_color(0x1234);
+    wasm4::blit(
         &INTRO_SCREEN,
         0,
         0,
@@ -58,8 +58,8 @@ pub fn title(tick: usize) {
         INTRO_SCREEN_HEIGHT,
         INTRO_SCREEN_FLAGS,
     );
-    unsafe { *DRAW_COLORS = 0x0234 };
-    blit(
+    palette::set_draw_color(0x0234);
+    wasm4::blit(
         &TITLE1,
         20 + tick as i32 % 11 / 4,
         110 + tick as i32 % 7 / 4,
@@ -67,7 +67,7 @@ pub fn title(tick: usize) {
         TITLE1_HEIGHT,
         TITLE1_FLAGS,
     );
-    set_draw_color(0x02);
+    palette::set_draw_color(0x02);
 }
 
 pub fn how_to_play(tick: usize) {
@@ -76,19 +76,19 @@ pub fn how_to_play(tick: usize) {
     let voff = 5;
     let hoff = 20;
 
-    set_draw_color(0x11);
-    rect(hoff, voff, SCREEN_SIZE - 40, SCREEN_SIZE - 20);
-    set_draw_color(0x23);
-    rect(hoff - 18, voff + 3, SCREEN_SIZE - 4, 15);
-    set_draw_color(0x02);
-    text("--- HOW TO PLAY ---", hoff - 16, voff + 7);
+    palette::set_draw_color(0x11);
+    wasm4::rect(hoff, voff, SCREEN_SIZE - 40, SCREEN_SIZE - 20);
+    palette::set_draw_color(0x23);
+    wasm4::rect(hoff - 18, voff + 3, SCREEN_SIZE - 4, 15);
+    palette::set_draw_color(0x02);
+    wasm4::text("--- HOW TO PLAY ---", hoff - 16, voff + 7);
     let mut player = Player::new(PlayerN::P1);
 
-    set_draw_color(HTP_TEXT_COLOR);
-    text("   You:", hoff, voff + 25);
-    text(" Avoid:", hoff, voff + 35);
-    text("Absorb:", hoff, voff + 45);
-    text("  Bomb:", hoff, voff + 55);
+    palette::set_draw_color(HTP_TEXT_COLOR);
+    wasm4::text("   You:", hoff, voff + 25);
+    wasm4::text(" Avoid:", hoff, voff + 35);
+    wasm4::text("Absorb:", hoff, voff + 45);
+    wasm4::text("  Bomb:", hoff, voff + 55);
     player.entity.position = Coord {
         x: hoff as f64 + 59.0,
         y: voff as f64 + 25.0,
@@ -101,7 +101,7 @@ pub fn how_to_play(tick: usize) {
             x: hoff as f64 + 60.0,
             y: voff as f64 + 36.0,
         },
-        COLOR1,
+        DRAW_COLOR_A,
     );
     enemy.draw();
     let enemy = Enemy::new(
@@ -110,7 +110,7 @@ pub fn how_to_play(tick: usize) {
             x: hoff as f64 + 60.0,
             y: voff as f64 + 46.0,
         },
-        COLOR2,
+        DRAW_COLOR_B,
     );
     enemy.draw();
     let bomb = Bomb::new(&Coord {
@@ -118,15 +118,14 @@ pub fn how_to_play(tick: usize) {
         y: voff as f64 + 54.0,
     });
     bomb.draw();
-
-    set_draw_color(HTP_TEXT_COLOR);
-    text(
-        " /".to_owned() + LEFT_ICON + DOWN_ICON + UP_ICON + RIGHT_ICON + ":Move",
+    palette::set_draw_color(HTP_TEXT_COLOR);
+    wasm4::text(
+        [b" /", LEFT_ICON, DOWN_ICON, UP_ICON, RIGHT_ICON, b":Move"].concat(),
         hoff,
         voff + 70,
     );
-    unsafe { *DRAW_COLORS = 0x0234 };
-    blit(
+    palette::set_draw_color(0x0234);
+    wasm4::blit(
         &LMOUSE_ICON,
         hoff - 1,
         voff + 69,
@@ -134,10 +133,10 @@ pub fn how_to_play(tick: usize) {
         LMOUSE_ICON_HEIGHT,
         LMOUSE_ICON_FLAGS,
     );
-    set_draw_color(HTP_TEXT_COLOR);
-    text("    /".to_owned() + X_ICON + ": -> ->", hoff, voff + 80);
-    unsafe { *DRAW_COLORS = 0x0234 };
-    blit(
+    palette::set_draw_color(HTP_TEXT_COLOR);
+    wasm4::text([b"    /", X_ICON, b": -> ->"].concat(), hoff, voff + 80);
+    palette::set_draw_color(0x0234);
+    wasm4::blit(
         &RMOUSE_ICON,
         hoff + 24,
         voff + 80,
@@ -163,37 +162,28 @@ pub fn how_to_play(tick: usize) {
     };
     player.draw();
 
-    // set_draw_color(0x12);
-    // text("Bombs  change", hoff, voff + 85);
-    // text("the enemy color", hoff, voff + 95);
-    // text("to your color!", hoff, voff + 105);
-    // let bomb = Bomb::new(&Coord {
-    //     x: hoff as f64 + 43.0,
-    //     y: voff as f64 + 84.0,
-    // });
-    // bomb.draw();
-    set_draw_color(HTP_TEXT_COLOR_ALT);
-    text("--Multiplayer--\nUp to 4 Players", hoff, voff + 96);
+    palette::set_draw_color(HTP_TEXT_COLOR_ALT);
+    wasm4::text("--Multiplayer--\nUp to 4 Players", hoff, voff + 96);
 
-    set_draw_color(0x23);
-    rect(hoff - 10, voff + 122, SCREEN_SIZE - 20, 13);
+    palette::set_draw_color(0x23);
+    wasm4::rect(hoff - 10, voff + 122, SCREEN_SIZE - 20, 13);
 
     // Syncs blink with intro song beat
     if (tick / 4) % 10 < 4 {
-        set_draw_color(0x00);
+        palette::set_draw_color(0x00);
     } else {
-        set_draw_color(0x04);
+        palette::set_draw_color(0x04);
     }
-    text(
-        "Press ".to_owned() + X_ICON + " to start",
+    wasm4::text(
+        [b"Press ", X_ICON, b" to start"].concat(),
         hoff - 4,
         voff + 125,
     );
 
-    set_draw_color(HTP_TEXT_COLOR_ALT);
-    text("/".to_owned() + Z_ICON + ":palette", hoff + 54, voff + 145);
-    unsafe { *DRAW_COLORS = 0x0234 };
-    blit(
+    palette::set_draw_color(HTP_TEXT_COLOR_ALT);
+    wasm4::text([b"/", Z_ICON, b":palette"].concat(), hoff + 54, voff + 145);
+    palette::set_draw_color(0x0234);
+    wasm4::blit(
         &CMOUSE_ICON,
         hoff + 46,
         voff + 145,
@@ -204,17 +194,17 @@ pub fn how_to_play(tick: usize) {
 }
 
 pub fn game_over(tick: usize) {
-    set_draw_color(0x14);
-    text(
+    palette::set_draw_color(0x14);
+    wasm4::text(
         "GAME OVER",
         SCREEN_SIZE as i32 / 2 - 35,
         SCREEN_SIZE as i32 / 2 - 10,
     );
     if (tick / 2) % 10 < 5 {
-        set_draw_color(0x10);
+        palette::set_draw_color(0x10);
     }
-    text(
-        "Press ".to_owned() + X_ICON + " to restart",
+    wasm4::text(
+        [b"Press ", X_ICON, b" to restart"].concat(),
         8,
         SCREEN_SIZE as i32 / 2 + 13,
     );

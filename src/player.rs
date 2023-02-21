@@ -1,8 +1,8 @@
 use crate::{
     common::{Coord, Movable, Visible},
-    draws::pixel,
+    draws,
     entity::Entity,
-    palette::{self, COLOR1, COLOR2},
+    palette::{self, DRAW_COLOR_A, DRAW_COLOR_B, DRAW_COLOR_PLAIN},
     wasm4::SCREEN_SIZE,
 };
 
@@ -21,9 +21,10 @@ pub struct Player {
 
 impl Player {
     pub fn new(player_number: PlayerN) -> Self {
-        let mut p = Self::default();
-        p.player_number = player_number;
-        p
+        Player {
+            player_number,
+            ..Default::default()
+        }
     }
 
     pub fn left(&mut self) {
@@ -58,10 +59,10 @@ impl Player {
     }
 
     pub fn toggle_color(&mut self) {
-        if self.entity.color == COLOR1 {
-            self.entity.color = COLOR2;
+        if self.entity.color == DRAW_COLOR_A {
+            self.entity.color = DRAW_COLOR_B;
         } else {
-            self.entity.color = COLOR1;
+            self.entity.color = DRAW_COLOR_A;
         }
     }
 }
@@ -80,9 +81,8 @@ impl Default for Player {
                 direction: Coord { x: 0.0, y: 0.0 },
                 size: DEFAULT_SIZE,
                 speed: DEFAULT_SPEED,
-                color: COLOR2,
+                color: DRAW_COLOR_B,
                 life: 1,
-                id: 0, // TODO: generate id
             },
             player_number: PlayerN::P1,
         }
@@ -154,9 +154,9 @@ impl Visible for Player {
                 });
             }
         }
-        palette::set_draw_color(0x33);
+        palette::set_draw_color(DRAW_COLOR_PLAIN);
         for center_coord in dots {
-            pixel(center_coord.x as i32, center_coord.y as i32);
+            draws::pixel(center_coord.x as i32, center_coord.y as i32);
         }
     }
 }

@@ -1,7 +1,7 @@
 use crate::{
     common::{Coord, Movable, Visible},
-    palette::set_draw_color,
-    wasm4::{oval, SCREEN_SIZE},
+    palette,
+    wasm4::{self, SCREEN_SIZE},
 };
 
 #[derive(Debug, Clone)]
@@ -10,7 +10,7 @@ pub struct Entity {
     pub direction: Coord,
     pub size: f64,
     pub speed: f64,
-    pub id: usize,
+    // pub id: usize, // unused
     pub color: u16,
     pub life: u32,
 }
@@ -64,8 +64,8 @@ impl Movable for Entity {
 /// All entities by default will be drawn as a circle
 impl Visible for Entity {
     fn draw(&self) {
-        set_draw_color(self.color);
-        oval(
+        palette::set_draw_color(self.color);
+        wasm4::oval(
             self.position.x as i32,
             self.position.y as i32,
             self.size as u32,

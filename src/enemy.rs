@@ -1,7 +1,7 @@
 use crate::{
     common::{Coord, Movable, Visible},
     entity::Entity,
-    palette::COLOR1,
+    palette::DRAW_COLOR_A,
     player::{Player, PlayerN},
 };
 
@@ -52,10 +52,9 @@ impl Enemy {
         }
     }
 
-    pub fn new(id: usize, pos: Coord, color: u16) -> Self {
+    pub fn new(_id: usize, pos: Coord, color: u16) -> Self {
         let mut enemy = Self::default();
         enemy.entity.position = pos;
-        enemy.entity.id = id;
         enemy.entity.color = color;
         enemy
     }
@@ -79,9 +78,8 @@ impl Default for Enemy {
                 direction: Coord::default(),
                 size: DEFAULT_SIZE,
                 speed: DEFAULT_SPEED,
-                color: COLOR1,
+                color: DRAW_COLOR_A,
                 life: Self::LIFE_SPAN,
-                id: 0,
             },
             follows: PlayerN::P1,
         }
