@@ -11,7 +11,7 @@ use crate::{
     wasm4::SCREEN_SIZE,
 };
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum PlayerN {
     P1 = 0,
     P2 = 1,
@@ -162,5 +162,61 @@ impl Visible for Player {
         for center_coord in dots {
             draw_utils::pixel(center_coord.x as i32, center_coord.y as i32);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn collided_with() {
+        let mut player = Player::new(PlayerN::P1);
+        player.entity.position = Coord { x: 50.0, y: 50.0 };
+        let mut entity = Entity {
+            position: Coord { x: 0.0, y: 0.0 },
+            direction: Coord { x: 0.0, y: 0.0 },
+            size: 10.0,
+            speed: 0.0,
+            color: DRAW_COLOR_B,
+            life: 1,
+        };
+
+        assert!(!player.entity.collided_with(&entity, 0.0));
+
+        entity.position = Coord { x: 45.0, y: 50.0 };
+        assert!(player.entity.collided_with(&entity, 0.0));
+
+        entity.position = Coord { x: 50.0, y: 45.0 };
+        entity.size = 10.0;
+        assert!(player.entity.collided_with(&entity, 0.0));
+    }
+
+    #[test]
+    fn up() {
+        let mut player = Player::new(PlayerN::P1);
+        player.up();
+        assert_eq!(player.entity.direction, Coord { x: 0.0, y: -1.0 });
+    }
+
+    #[test]
+    fn down() {
+        let mut player = Player::new(PlayerN::P1);
+        player.down();
+        assert_eq!(player.entity.direction, Coord { x: 0.0, y: 1.0 });
+    }
+
+    #[test]
+    fn left() {
+        let mut player = Player::new(PlayerN::P1);
+        player.left();
+        assert_eq!(player.entity.direction, Coord { x: -1.0, y: 0.0 });
+    }
+
+    #[test]
+    fn right() {
+        let mut player = Player::new(PlayerN::P1);
+        player.right();
+        assert_eq!(player.entity.direction, Coord { x: 1.0, y: 0.0 });
     }
 }

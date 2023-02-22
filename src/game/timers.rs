@@ -32,3 +32,22 @@ impl Timers {
         self.song_tick = self.song_tick.wrapping_add(1);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_update() {
+        let mut timers = Timers::new();
+        timers.tick();
+        assert_eq!(timers.frame_count, 1);
+        assert_eq!(timers.respite, RESPITE_DURATION - 1);
+        assert_eq!(timers.song_tick, 1);
+
+        timers.tick();
+        assert_eq!(timers.frame_count, 2);
+        assert_eq!(timers.respite, RESPITE_DURATION - 2);
+        assert_eq!(timers.song_tick, 2);
+    }
+}

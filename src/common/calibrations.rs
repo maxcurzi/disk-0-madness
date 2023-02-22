@@ -13,6 +13,8 @@ pub const DIFFICULTY_LEVELS: usize = 10;
 pub const NEXT_LIFE_SCORE: u32 = 100_000;
 pub const RESPITE_DURATION: usize = 120;
 pub const DEATH_COUNTDOWN_DURATION: usize = 90;
+pub const SCORE_BOMB: u32 = 10;
+pub const SCORE_ENEMY: u32 = 1;
 // Enemy color switch times
 pub const ENEMY_FRAME: [usize; DIFFICULTY_LEVELS] = [120, 60, 30, 25, 15, 10, 8, 6, 4, 2];
 // Enemy spawn times

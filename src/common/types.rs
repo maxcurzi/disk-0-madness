@@ -64,3 +64,39 @@ impl Sub for Coord {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn distance_to() {
+        let a = Coord { x: 0.0, y: 0.0 };
+        let b = Coord { x: 3.0, y: 4.0 };
+        assert_eq!(a.distance_to(&b), 5.0);
+    }
+
+    #[test]
+    fn norm() {
+        let a = Coord { x: 0.0, y: 0.0 };
+        let b = Coord { x: 3.0, y: 4.0 };
+        assert_eq!(a.norm(), 0.0);
+        assert_eq!(b.norm(), 5.0);
+    }
+
+    #[test]
+    fn scale() {
+        let a = Coord { x: 0.0, y: 0.0 };
+        let b = Coord { x: 3.0, y: 4.0 };
+        assert_eq!(a.scale(2.0), a);
+        assert_eq!(b.scale(2.0), Coord { x: 6.0, y: 8.0 });
+    }
+
+    #[test]
+    fn clamp() {
+        let a = Coord { x: 0.0, y: 0.0 };
+        let b = Coord { x: 3.0, y: 4.0 };
+        assert_eq!(a.clamp(0.0, 1.0, 0.0, 1.0), a);
+        assert_eq!(b.clamp(0.0, 1.0, 0.0, 1.0), Coord { x: 1.0, y: 1.0 });
+    }
+}

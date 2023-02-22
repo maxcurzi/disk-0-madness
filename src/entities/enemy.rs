@@ -7,7 +7,7 @@ use super::{
 use crate::{common::types::Coord, graphics::palette::DRAW_COLOR_A};
 pub struct Enemy {
     pub entity: Entity,
-    pub follows: PlayerN,
+    pub follows: Option<PlayerN>,
 }
 
 impl Enemy {
@@ -22,7 +22,7 @@ impl Enemy {
 
     pub fn follow(&mut self, player: &Option<Player>) {
         if let Some(player) = player {
-            self.follows = player.player_number;
+            self.follows = Some(player.player_number);
             // Standard pure pursuit
             let p_radius = player.entity.size / 2.0;
             let e_radius = self.entity.size / 2.0;
@@ -48,6 +48,8 @@ impl Enemy {
             let ddy_norm = (self.entity.direction.y - p_to_e.y / norm).clamp(-0.09, 0.09);
             self.entity.direction.x -= ddx_norm;
             self.entity.direction.y -= ddy_norm;
+        } else {
+            self.follows = None;
         }
     }
 
@@ -79,7 +81,7 @@ impl Default for Enemy {
                 color: DRAW_COLOR_A,
                 life: Self::LIFE_SPAN,
             },
-            follows: PlayerN::P1,
+            follows: Some(PlayerN::P1),
         }
     }
 }
@@ -94,5 +96,40 @@ impl Movable for Enemy {
 impl Visible for Enemy {
     fn draw(&self) {
         self.entity.draw();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn follow() {
+        let mut enemy = Enemy::default();
+        let mut player = Player::default();
+        player.entity.position = Coord { x: 10.0, y: 10.0 };
+        enemy.entity.position = Coord { x: 20.0, y: 10.0 };
+        enemy.follow(&Some(player));
+        assert_eq!(enemy.follows, Some(PlayerN::P1));
+        enemy.update_position();
+        assert!(enemy.entity.position.x < 20.0);
+        enemy.follow(&None);
+        assert_eq!(enemy.follows, None);
+    }
+
+    #[test]
+    fn kill() {
+        let mut enemy = Enemy::default();
+        assert_ne!(enemy.entity.life, 0);
+        enemy.kill();
+        assert_eq!(enemy.entity.life, 0);
+    }
+
+    #[test]
+    fn just_spawned() {
+        let mut enemy = Enemy::default();
+        enemy.entity.life = Enemy::LIFE_SPAN - Enemy::I_FRAMES_ON_SPAWN + 1;
+        assert!(enemy.just_spawned());
+        enemy.entity.life = Enemy::LIFE_SPAN - Enemy::I_FRAMES_ON_SPAWN - 1;
+        assert!(!enemy.just_spawned());
     }
 }

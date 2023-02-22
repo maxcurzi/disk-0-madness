@@ -23,7 +23,7 @@ impl Bomb {
 
     fn grow(&mut self) {
         let grow_amt = self.growth_rate;
-        self.entity.size = (self.entity.size + grow_amt).clamp(2.0, SCREEN_SIZE as f64);
+        self.entity.size = (self.entity.size + grow_amt).clamp(2.0, SCREEN_SIZE as f64 - 1.0);
         self.entity.position.x -= grow_amt / 2.0;
         self.entity.position.y -= grow_amt / 2.0;
         self.entity.life -= 1;
@@ -54,5 +54,36 @@ impl Default for Bomb {
 impl Visible for Bomb {
     fn draw(&self) {
         self.entity.draw();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn grow() {
+        let mut bomb = Bomb::default();
+        bomb.exploded = true;
+        bomb.entity.size = 10.0;
+        bomb.entity.position = Coord { x: 10.0, y: 10.0 };
+        bomb.entity.life = 1;
+        bomb.grow();
+        assert_eq!(bomb.entity.size, 13.5);
+        assert_eq!(bomb.entity.position, Coord { x: 8.25, y: 8.25 });
+        assert_eq!(bomb.entity.life, 0);
+    }
+
+    #[test]
+    fn grow_max() {
+        let mut bomb = Bomb::default();
+        bomb.exploded = true;
+        bomb.entity.size = SCREEN_SIZE as f64 - 1.0;
+        bomb.entity.position = Coord { x: 10.0, y: 10.0 };
+        bomb.entity.life = 1;
+        bomb.grow();
+        assert_eq!(bomb.entity.size, SCREEN_SIZE as f64 - 1.0);
+        assert_eq!(bomb.entity.position, Coord { x: 8.25, y: 8.25 });
+        assert_eq!(bomb.entity.life, 0);
     }
 }
