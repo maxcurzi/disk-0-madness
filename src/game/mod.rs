@@ -46,9 +46,7 @@ pub struct Game {
 }
 
 // Ideally it should be refactored quite a bit, maybe with the addition of an
-// event system. An event system mis not a trivial change (especially since I
-// can't get unit tests to work) and since this game was developed during a game
-// jam with limited time it was decided to be left as is.
+// event system.
 impl Game {
     pub fn new() -> Self {
         let entities = Entities::new();
