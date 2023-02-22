@@ -76,8 +76,144 @@ impl Visible for Entity {
 
 #[cfg(test)]
 mod tests {
+    use crate::{common::types::Coord, entities::traits::Movable};
+    use approx::assert_abs_diff_eq;
+
+    use super::Entity;
+
     #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
+    fn distance_same() {
+        let e1 = Entity {
+            position: Coord { x: 0.0, y: 0.0 },
+            direction: Coord { x: 0.0, y: 0.0 },
+            size: 1.0,
+            speed: 0.0,
+            color: 0,
+            life: 0,
+        };
+        let e2 = Entity {
+            position: Coord { x: 0.0, y: 0.0 },
+            direction: Coord { x: 0.0, y: 0.0 },
+            size: 1.0,
+            speed: 0.0,
+            color: 0,
+            life: 0,
+        };
+        assert_abs_diff_eq!(e1.distance(&e2), 0.0);
+    }
+    #[test]
+    fn distance_same_size() {
+        let e1 = Entity {
+            position: Coord { x: 0.0, y: 0.0 },
+            direction: Coord { x: 0.0, y: 0.0 },
+            size: 1.0,
+            speed: 0.0,
+            color: 0,
+            life: 0,
+        };
+        let e2 = Entity {
+            position: Coord { x: 1.0, y: 0.0 },
+            direction: Coord { x: 0.0, y: 0.0 },
+            size: 1.0,
+            speed: 0.0,
+            color: 0,
+            life: 0,
+        };
+        assert_abs_diff_eq!(e1.distance(&e2), 1.0);
+    }
+    #[test]
+    fn distance_all_different() {
+        let e1 = Entity {
+            position: Coord { x: 0.0, y: 0.0 },
+            direction: Coord { x: 0.0, y: 0.0 },
+            size: 10.0,
+            speed: 0.0,
+            color: 0,
+            life: 0,
+        };
+        let e2 = Entity {
+            position: Coord { x: 10.0, y: 10.0 },
+            direction: Coord { x: 0.0, y: 0.0 },
+            size: 10.0,
+            speed: 0.0,
+            color: 0,
+            life: 0,
+        };
+        assert_abs_diff_eq!(e1.distance(&e2), 14.142135623730951);
+    }
+
+    #[test]
+    fn collided_with_distance() {
+        let e1 = Entity {
+            position: Coord { x: 0.0, y: 0.0 },
+            direction: Coord { x: 0.0, y: 0.0 },
+            size: 20.0,
+            speed: 0.0,
+            color: 0,
+            life: 0,
+        };
+        let e2 = Entity {
+            position: Coord { x: 10.0, y: 10.0 },
+            direction: Coord { x: 0.0, y: 0.0 },
+            size: 20.0,
+            speed: 0.0,
+            color: 0,
+            life: 0,
+        };
+        assert!(e1.collided_with(&e2, 0.0));
+        assert!(!e1.collided_with(&e2, -10.0));
+    }
+
+    #[test]
+    fn collided_with_size() {
+        let mut e1 = Entity {
+            position: Coord { x: 0.0, y: 0.0 },
+            direction: Coord { x: 0.0, y: 0.0 },
+            size: 10.0,
+            speed: 0.0,
+            color: 0,
+            life: 0,
+        };
+        let e2 = Entity {
+            position: Coord { x: 100.0, y: 100.0 },
+            direction: Coord { x: 0.0, y: 0.0 },
+            size: 10.0,
+            speed: 0.0,
+            color: 0,
+            life: 0,
+        };
+        assert!(!e1.collided_with(&e2, 0.0));
+        e1.size = 150.0;
+        assert!(e1.collided_with(&e2, 0.0));
+    }
+
+    #[test]
+    fn update_position_diagonal() {
+        let mut e1 = Entity {
+            position: Coord { x: 0.0, y: 0.0 },
+            direction: Coord { x: 1.0, y: 1.0 },
+            size: 10.0,
+            speed: 10.0,
+            color: 0,
+            life: 0,
+        };
+        e1.update_position();
+        assert_abs_diff_eq!(e1.position.x, 7.071067811865475);
+        assert_abs_diff_eq!(e1.position.y, 7.071067811865475);
+    }
+
+    #[test]
+    fn update_position_horizontal() {
+        let mut e1 = Entity {
+            position: Coord { x: 0.0, y: 0.0 },
+            direction: Coord { x: 1.0, y: 0.0 },
+            size: 10.0,
+            speed: 10.0,
+            color: 0,
+            life: 0,
+        };
+        e1.update_position();
+        assert_abs_diff_eq!(e1.position.x, 10.0);
+        assert_abs_diff_eq!(e1.position.y, 0.0);
     }
 }
