@@ -75,6 +75,12 @@ Then run it with:
 w4 run target/wasm32-unknown-unknown/release/cart.wasm
 ```
 
+## Running the tests
+```shell
+cargo run_tests
+```
+`run_tests` is an alias (defined in .cargo/config.toml) to `test --target x86_64-unknown-linux-gnu --no-default-features`. This is because is not currently possible to run tests for the wasm32 target (webassembly-test crate does not work).
+
 ## Releases
 https://github.com/maxcurzi/disk-0-madness/releases
 ## WASM4
